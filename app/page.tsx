@@ -375,11 +375,11 @@ export default function Home() {
                 <div className="relative">
                   <button type="button" onClick={()=>setShowCompanyMenu(v=>!v)} className="group inline-flex min-h-12 max-w-[min(22rem,80vw)] items-center gap-3 rounded-2xl border border-rose-500/70 bg-gradient-to-r from-[#ed1c35] via-[#c8142c] to-[#8f0b1b] px-4 py-2.5 text-left text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition hover:-translate-y-0.5 hover:brightness-110">
                     <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-white/20 bg-black/15"><Building2 size={19}/></span>
-                    <span className="min-w-0 flex-1"><span className="block text-[9px] font-semibold uppercase tracking-[.16em] text-rose-100/80">Empresa ativa</span><span className="block truncate text-sm">{companies.find(c=>c.id===companyId)?.nome || "Selecionar empresa"}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-base font-extrabold tracking-tight">{companies.find(c=>c.id===companyId)?.nome || "Selecionar empresa"}</span></span>
                     <span className={`text-lg transition-transform ${showCompanyMenu?"rotate-180":""}`}>⌄</span>
                   </button>
-                  {showCompanyMenu && <div className="absolute right-0 z-40 mt-3 w-[min(22rem,90vw)] overflow-hidden rounded-2xl border border-rose-500/70 bg-[#0b101a] shadow-2xl shadow-black/70 ring-1 ring-white/10">
-                    <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#3a0d18] via-[#1c1019] to-[#101827] px-4 py-4">
+                  {showCompanyMenu && <div className="absolute right-0 z-40 mt-3 w-[min(28rem,92vw)] overflow-hidden rounded-[1.8rem] border-2 border-rose-500 bg-[#080a10] shadow-[0_0_0_1px_rgba(255,35,55,.25),0_0_35px_rgba(237,28,53,.45)] ring-1 ring-white/10">
+                    <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#4b1019] via-[#210b12] to-[#101018] px-5 py-5 shadow-[inset_0_-18px_30px_rgba(237,28,53,.16)]">
                       <div className="absolute -right-8 -top-10 size-28 rounded-full bg-rose-600/20 blur-2xl"/>
                       <div className="relative flex items-center gap-3">
                         <span className="grid size-12 shrink-0 place-items-center rounded-2xl border border-rose-400/30 bg-rose-500/15 text-rose-200"><Building2 size={24}/></span>
@@ -389,7 +389,7 @@ export default function Home() {
                     </div>
                     <div className="space-y-1 p-3">
                       <p className="px-2 pb-1 pt-1 text-[9px] font-bold uppercase tracking-[.18em] text-slate-500">Gerenciar empresa</p>
-                      <button type="button" onClick={()=>{setEditingCompanyId(null);setCompanyName("");setShowCompanyForm(true);setShowCompanyMenu(false);}} className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/[.035] px-3 py-3 text-left text-sm font-semibold text-slate-100 transition hover:border-rose-500/40 hover:bg-rose-500/10"><span className="grid size-9 place-items-center rounded-lg bg-rose-500/15 text-rose-300"><Plus size={18}/></span><span className="flex-1">Cadastrar empresa</span><span className="text-slate-500">›</span></button>
+                      <button type="button" onClick={()=>{setEditingCompanyId(null);setCompanyName("");setShowCompanyForm(true);setShowCompanyMenu(false);}} className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-r from-[#17171c] to-[#0d0e13] px-3 py-3.5 text-left text-base font-semibold text-slate-100 transition hover:border-rose-500/40 hover:bg-rose-500/10"><span className="grid size-9 place-items-center rounded-lg bg-rose-500/15 text-rose-300"><Plus size={18}/></span><span className="flex-1">Cadastrar empresa</span><span className="text-slate-500">›</span></button>
                       <button type="button" onClick={openCompanyEditor} className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/[.035] px-3 py-3 text-left text-sm font-semibold text-slate-100 transition hover:border-sky-500/40 hover:bg-sky-500/10"><span className="grid size-9 place-items-center rounded-lg bg-sky-500/15 text-sky-300"><Pencil size={18}/></span><span className="flex-1">Editar empresa</span><span className="text-slate-500">›</span></button>
                       <button type="button" onClick={openCompanyEditor} className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/[.035] px-3 py-3 text-left text-sm font-semibold text-slate-100 transition hover:border-amber-500/40 hover:bg-amber-500/10"><span className="grid size-9 place-items-center rounded-lg bg-amber-500/15 text-amber-300"><SlidersHorizontal size={18}/></span><span className="flex-1">Alterar dados</span><span className="text-slate-500">›</span></button>
                     </div>
@@ -401,6 +401,7 @@ export default function Home() {
                   </div>}
                 </div>
               </div>
+            </div>
           </div>
           {error && <div className="rounded-xl border border-rose-700/50 bg-rose-950/40 p-3 text-sm text-rose-200">{error}</div>}
           {notice && <div className="rounded-xl border border-emerald-700/50 bg-emerald-950/30 p-3 text-sm text-emerald-200">{notice}</div>}
