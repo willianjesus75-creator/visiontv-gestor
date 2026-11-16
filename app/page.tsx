@@ -1,125 +1,282 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
-  Activity, Building2, CreditCard, LayoutDashboard, LogOut,
-  Menu, Users, Wallet, CalendarClock, CircleAlert
+  Activity, Building2, CalendarDays, CreditCard, LayoutDashboard,
+  LogOut, Menu, Plus, RefreshCw, Search, Trash2, Users, Wallet,
+  X, ArrowDownCircle, ArrowUpCircle
 } from "lucide-react";
 
-type Counts = { empresas: number; clientes: number; assinaturas: number; pagamentos: number; despesas: number };
-const initial: Counts = { empresas: 0, clientes: 0, assinaturas: 0, pagamentos: 0, despesas: 0 };
+type Company = { id: string; nome: string; tipo?: string | null };
+type Client = {
+  id: string; empresa_id: string; nome: string; telefone: string | null;
+  whatsapp: string | null; data_contratacao: string | null; status: string;
+};
+type Payment = {
+  id: string; empresa_id: string; cliente_id: string | null; valor: number;
+  data_vencimento: string | null; data_pagamento: string | null;
+  forma_pagamento: string | null; status: string; descricao: string | null;
+};
+type Expense = {
+  id: string; empresa_id: string; descricao: string; categoria: string | null;
+  valor: number; data_vencimento: string | null; data_pagamento: string | null;
+  forma_pagamento: string | null; status: string; observacoes: string | null;
+};
+type Subscription = {
+  id: string; cliente_id: string; nome_plano: string; quantidade_telas: number;
+  valor: number; periodicidade: string; data_vencimento: string; status: string;
+};
+
+const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+const today = () => new Date().toISOString().slice(0, 10);
 
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [user, setUser] = useState<string | null>(null);
-  const [counts, setCounts] = useState<Counts>(initial);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [tab, setTab] = useState<"inicio" | "clientes" | "financeiro">("inicio");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [search, setSearch] = useState("");
+  const [clientForm, setClientForm] = useState({ nome: "", telefone: "", whatsapp: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+  const [paymentForm, setPaymentForm] = useState({ cliente_id: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
+  const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [showCompanyForm, setShowCompanyForm] = useState(false);
+  const [companyName, setCompanyName] = useState("");
 
   useEffect(() => {
     let alive = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
-      setUser(data.session?.user.email ?? null);
+      const u = data.session?.user;
+      setUser(u ? { id: u.id, email: u.email ?? "" } : null);
       setLoading(false);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user.email ?? null);
+      const u = session?.user;
+      setUser(u ? { id: u.id, email: u.email ?? "" } : null);
     });
     return () => { alive = false; listener.subscription.unsubscribe(); };
   }, []);
 
-  useEffect(() => {
-    if (user) loadCounts();
-  }, [user]);
+  useEffect(() => { if (user) void loadData(); }, [user]);
 
-  async function loadCounts() {
-    const tables: (keyof Counts)[] = ["empresas", "clientes", "assinaturas", "pagamentos", "despesas"];
-    const values = await Promise.all(tables.map(async (table) => {
-      const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
-      return [table, error ? 0 : (count ?? 0)] as const;
-    }));
-    setCounts(Object.fromEntries(values) as Counts);
+  async function loadData() {
+    setError("");
+    const [c, cl, p, e, s] = await Promise.all([
+      supabase.from("empresas").select("id,nome,tipo").order("nome"),
+      supabase.from("clientes").select("id,empresa_id,nome,telefone,whatsapp,data_contratacao,status").order("nome"),
+      supabase.from("pagamentos").select("id,empresa_id,cliente_id,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").order("created_at", { ascending: false }),
+      supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").order("created_at", { ascending: false }),
+      supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status").order("data_vencimento")
+    ]);
+    const firstError = c.error || cl.error || p.error || e.error || s.error;
+    if (firstError) setError("Não foi possível carregar todos os dados: " + firstError.message);
+    const cs = (c.data ?? []) as Company[];
+    setCompanies(cs);
+    setCompanyId((current) => current || cs[0]?.id || "");
+    setClients((cl.data ?? []) as Client[]);
+    setPayments((p.data ?? []) as Payment[]);
+    setExpenses((e.data ?? []) as Expense[]);
+    setSubscriptions((s.data ?? []) as Subscription[]);
   }
 
-  async function signIn(e: React.FormEvent) {
-    e.preventDefault(); setBusy(true); setError(""); setNotice("");
+  async function signIn(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setError("");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError("Não foi possível entrar. Confira seu e-mail e senha e tente novamente.");
+    if (error) setError("Não foi possível entrar. Confira o e-mail e a senha.");
+    setBusy(false);
+  }
+  async function signOut() { await supabase.auth.signOut(); setUser(null); }
+
+  async function addCompany(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user || !companyName.trim()) return;
+    setBusy(true); setError(""); setNotice("");
+    const { data, error } = await supabase.from("empresas").insert({ owner_id: user.id, nome: companyName.trim(), tipo: "empresa" }).select("id,nome,tipo").single();
+    if (error) setError(error.message);
+    else { setCompanies((old) => [...old, data as Company]); setCompanyId(data.id); setCompanyName(""); setShowCompanyForm(false); setNotice("Empresa cadastrada."); }
     setBusy(false);
   }
 
-  async function signOut() { await supabase.auth.signOut(); setUser(null); }
+  async function addClient(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
+    setBusy(true); setError(""); setNotice("");
+    const { data, error } = await supabase.from("clientes").insert({
+      owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(),
+      telefone: clientForm.telefone || null, whatsapp: clientForm.whatsapp || null,
+      data_contratacao: clientForm.data_contratacao || null, status: clientForm.status
+    }).select("id,empresa_id,nome,telefone,whatsapp,data_contratacao,status").single();
+    if (error) setError(error.message);
+    else {
+      if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
+        const { error: subError } = await supabase.from("assinaturas").insert({
+          owner_id: user.id, empresa_id: companyId, cliente_id: data.id,
+          nome_plano: clientForm.plano, quantidade_telas: Number(clientForm.telas),
+          valor: Number(clientForm.valor), periodicidade: clientForm.periodicidade,
+          data_inicio: clientForm.data_contratacao || today(), data_vencimento: clientForm.vencimento,
+          status: "ativa"
+        });
+        if (subError) setError("Cliente salvo, mas a assinatura não foi criada: " + subError.message);
+      }
+      setClients((old) => [data as Client, ...old]);
+      setClientForm({ nome: "", telefone: "", whatsapp: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+      setShowClientForm(false); setNotice("Cliente cadastrado.");
+      await loadData();
+    }
+    setBusy(false);
+  }
+
+  async function addPayment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user || !companyId) { setError("Cadastre ou selecione uma empresa primeiro."); return; }
+    setBusy(true); setError(""); setNotice("");
+    const { data, error } = await supabase.from("pagamentos").insert({
+      owner_id: user.id, empresa_id: companyId, cliente_id: paymentForm.cliente_id || null,
+      valor: Number(paymentForm.valor), descricao: paymentForm.descricao || "Recebimento",
+      data_vencimento: paymentForm.data_vencimento || null,
+      data_pagamento: paymentForm.status === "pago" ? (paymentForm.data_pagamento || today()) : null,
+      forma_pagamento: paymentForm.forma_pagamento, status: paymentForm.status
+    }).select("id,empresa_id,cliente_id,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").single();
+    if (error) setError(error.message);
+    else { setPayments((old) => [data as Payment, ...old]); setPaymentForm({ cliente_id: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" }); setShowPaymentForm(false); setNotice("Recebimento registrado."); }
+    setBusy(false);
+  }
+
+  async function addExpense(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user || !companyId) { setError("Cadastre ou selecione uma empresa primeiro."); return; }
+    setBusy(true); setError(""); setNotice("");
+    const { data, error } = await supabase.from("despesas").insert({
+      owner_id: user.id, empresa_id: companyId, descricao: expenseForm.descricao.trim(),
+      categoria: expenseForm.categoria || null, valor: Number(expenseForm.valor),
+      data_vencimento: expenseForm.data_vencimento || null,
+      data_pagamento: expenseForm.status === "pago" ? (expenseForm.data_pagamento || today()) : null,
+      forma_pagamento: expenseForm.forma_pagamento, status: expenseForm.status,
+      observacoes: expenseForm.observacoes || null
+    }).select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").single();
+    if (error) setError(error.message);
+    else { setExpenses((old) => [data as Expense, ...old]); setExpenseForm({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" }); setShowExpenseForm(false); setNotice("Despesa registrada."); }
+    setBusy(false);
+  }
+
+  async function deleteClient(client: Client) {
+    if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
+    const { error } = await supabase.from("clientes").delete().eq("id", client.id);
+    if (error) setError(error.message); else { setClients((old) => old.filter((x) => x.id !== client.id)); setNotice("Cliente excluído."); }
+  }
+  async function deleteFinance(table: "pagamentos" | "despesas", id: string) {
+    if (!confirm("Deseja excluir este lançamento?")) return;
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) setError(error.message);
+    else { if (table === "pagamentos") setPayments((old) => old.filter((x) => x.id !== id)); else setExpenses((old) => old.filter((x) => x.id !== id)); setNotice("Lançamento excluído."); }
+  }
+
+  const filteredClients = useMemo(() => clients.filter((c) => c.empresa_id === companyId && (c.nome.toLowerCase().includes(search.toLowerCase()) || (c.telefone ?? "").includes(search))), [clients, companyId, search]);
+  const companyPayments = payments.filter((p) => p.empresa_id === companyId);
+  const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
+  const received = companyPayments.filter((p) => p.status === "pago").reduce((sum, p) => sum + Number(p.valor), 0);
+  const spent = companyExpenses.filter((e) => e.status === "pago").reduce((sum, e) => sum + Number(e.valor), 0);
+  const pendingPayments = companyPayments.filter((p) => p.status !== "pago").reduce((sum, p) => sum + Number(p.valor), 0);
+  const pendingExpenses = companyExpenses.filter((e) => e.status !== "pago").reduce((sum, e) => sum + Number(e.valor), 0);
+  const upcoming = subscriptions.filter((s) => clients.some((c) => c.id === s.cliente_id && c.empresa_id === companyId) && s.status === "ativa").sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento)).slice(0, 6);
 
   if (loading) return <main className="min-h-screen grid place-items-center text-slate-400">Carregando VisionTV Gestor...</main>;
-
   if (!user) return (
     <main className="min-h-screen flex items-center justify-center p-5">
       <section className="w-full max-w-md rounded-3xl border border-line bg-panel p-8 shadow-2xl">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600"><Activity size={25}/></div>
-          <div><h1 className="text-2xl font-bold">VisionTV Gestor</h1><p className="text-sm text-muted">Gestão em um só lugar</p></div>
-        </div>
-        <h2 className="mb-2 text-xl font-semibold">Acessar sua conta</h2>
-        <p className="mb-6 text-sm text-muted">Entre com o usuário cadastrado no Supabase Authentication.</p>
+        <div className="mb-8 flex items-center gap-3"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600"><Activity size={25}/></div><div><h1 className="text-2xl font-bold">VisionTV Gestor</h1><p className="text-sm text-muted">Gestão em um só lugar</p></div></div>
+        <h2 className="mb-2 text-xl font-semibold">Acessar sua conta</h2><p className="mb-6 text-sm text-muted">Entre com sua conta cadastrada.</p>
         <form onSubmit={signIn} className="space-y-4">
-          <label className="block text-sm text-slate-300">E-mail
-            <input value={email} onChange={e=>setEmail(e.target.value)} type="email" required className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3 outline-none focus:border-rose-500"/>
-          </label>
-          <label className="block text-sm text-slate-300">Senha
-            <input value={password} onChange={e=>setPassword(e.target.value)} type="password" required className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3 outline-none focus:border-rose-500"/>
-          </label>
+          <label className="block text-sm text-slate-300">E-mail<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" required className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3"/></label>
+          <label className="block text-sm text-slate-300">Senha<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" required className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3"/></label>
           {error && <p className="rounded-xl bg-rose-950/60 p-3 text-sm text-rose-300">{error}</p>}
-          <button disabled={busy} className="w-full rounded-xl bg-rose-600 px-4 py-3 font-semibold hover:bg-rose-500 disabled:opacity-60">{busy ? "Entrando..." : "Entrar"}</button>
+          <button disabled={busy} className="w-full rounded-xl bg-rose-600 px-4 py-3 font-semibold disabled:opacity-60">{busy ? "Entrando..." : "Entrar"}</button>
         </form>
-        <p className="mt-6 text-xs leading-5 text-muted">A conta deve ser criada previamente em Supabase → Authentication → Users. Não compartilhe sua senha ou chaves privadas.</p>
+        <p className="mt-6 text-xs leading-5 text-muted">Acesso privado. Não compartilhe sua senha ou chaves privadas.</p>
       </section>
     </main>
   );
 
-  const cards = [
-    { label: "Empresas", value: counts.empresas, icon: Building2, desc: "Empresas cadastradas" },
-    { label: "Clientes", value: counts.clientes, icon: Users, desc: "Clientes cadastrados" },
-    { label: "Assinaturas", value: counts.assinaturas, icon: CreditCard, desc: "Registros de assinatura" },
-    { label: "Pagamentos", value: counts.pagamentos, icon: Wallet, desc: "Lançamentos registrados" },
-    { label: "Despesas", value: counts.despesas, icon: CalendarClock, desc: "Despesas registradas" }
-  ];
+  const nav = [{ id: "inicio" as const, label: "Visão geral", icon: LayoutDashboard }, { id: "clientes" as const, label: "Clientes", icon: Users }, { id: "financeiro" as const, label: "Financeiro", icon: Wallet }];
+  const inputClass = "w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-rose-500";
+  const field = (label: string, control: React.ReactNode) => <label className="block space-y-1.5 text-sm text-slate-300">{label}{control}</label>;
 
   return (
     <main className="min-h-screen md:flex">
-      <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-20 w-64 border-r border-line bg-[#0d1421] p-5 md:block`}>
+      <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-30 w-64 border-r border-line bg-[#0d1421] p-5 md:block`}>
         <div className="mb-10 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-600"><Activity/></div><div><b>VisionTV</b><p className="text-xs text-muted">GESTOR</p></div></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
-        <nav className="space-y-2 text-sm">
-          <div className="flex items-center gap-3 rounded-xl bg-rose-600/15 px-4 py-3 text-rose-300"><LayoutDashboard size={18}/> Visão geral</div>
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400"><Building2 size={18}/> Empresas</div>
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400"><Users size={18}/> Clientes</div>
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400"><CreditCard size={18}/> Assinaturas</div>
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400"><Wallet size={18}/> Financeiro</div>
-        </nav>
+        <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${tab===id ? "bg-rose-600/15 text-rose-300" : "text-slate-400 hover:bg-slate-800"}`}><Icon size={18}/>{label}</button>)}</nav>
         <div className="absolute bottom-5 left-5 right-5 text-xs text-muted">Acesso privado • VisionTV Gestor</div>
       </aside>
       <section className="min-w-0 flex-1 md:ml-64">
-        <header className="flex items-center justify-between border-b border-line bg-[#0d1421] px-5 py-4 md:px-8">
-          <button onClick={()=>setMenuOpen(!menuOpen)} className="rounded-lg border border-line p-2 md:hidden" aria-label="Abrir menu"><Menu size={19}/></button>
-          <div><p className="text-sm text-muted">Painel de controle</p><h1 className="text-xl font-bold">Visão geral</h1></div>
-          <div className="flex items-center gap-3"><span className="hidden text-sm text-muted sm:block">{user}</span><button onClick={signOut} className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"><LogOut size={16}/> Sair</button></div>
+        <header className="flex items-center justify-between border-b border-line bg-[#0d1421] px-4 py-4 md:px-8">
+          <div className="flex items-center gap-3"><button onClick={()=>setMenuOpen(!menuOpen)} className="rounded-lg border border-line p-2 md:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div><p className="text-sm text-muted">Painel de controle</p><h1 className="text-xl font-bold">VisionTV Gestor</h1></div></div>
+          <div className="flex items-center gap-2"><span className="hidden max-w-48 truncate text-xs text-muted sm:block">{user.email}</span><button onClick={signOut} className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm text-slate-300"><LogOut size={16}/><span className="hidden sm:inline">Sair</span></button></div>
         </header>
-        <div className="p-5 md:p-8">
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-2xl font-bold">Bem-vindo ao VisionTV Gestor</h2><p className="mt-1 text-sm text-muted">Resumo dos registros do seu sistema.</p></div><button onClick={loadCounts} className="rounded-xl border border-line px-4 py-2 text-sm hover:bg-slate-800">Atualizar dados</button></div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {cards.map(({label,value,icon:Icon,desc})=><article key={label} className="rounded-2xl border border-line bg-panel p-5"><div className="flex items-center justify-between"><span className="text-sm text-muted">{label}</span><span className="rounded-xl bg-slate-800 p-2 text-rose-300"><Icon size={19}/></span></div><p className="mt-4 text-3xl font-bold">{value}</p><p className="mt-1 text-xs text-muted">{desc}</p></article>)}
+        <div className="space-y-6 p-4 md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><h2 className="text-2xl font-bold">{tab==="inicio"?"Visão geral":tab==="clientes"?"Gestão de clientes":"Financeiro"}</h2><p className="mt-1 text-sm text-muted">Dados sincronizados com sua conta na nuvem.</p></div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select aria-label="Selecionar empresa" value={companyId} onChange={(e)=>setCompanyId(e.target.value)} className={inputClass+" w-auto min-w-36"}><option value="">Selecione empresa</option>{companies.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+              <button onClick={()=>setShowCompanyForm(true)} className="rounded-xl border border-line px-3 py-2 text-sm hover:bg-slate-800"><Building2 size={16} className="mr-1 inline"/> Empresa</button>
+              <button onClick={()=>void loadData()} className="rounded-xl border border-line p-2.5 hover:bg-slate-800" title="Atualizar"><RefreshCw size={16}/></button>
+            </div>
           </div>
-          <div className="mt-6 rounded-2xl border border-amber-700/40 bg-amber-950/20 p-5">
-            <div className="flex items-start gap-3"><CircleAlert className="mt-0.5 text-amber-400" size={20}/><div><h3 className="font-semibold text-amber-200">Configuração inicial</h3><p className="mt-1 text-sm leading-6 text-slate-300">Esta é a base inicial do painel. Os menus de cadastro, vencimentos e lançamentos serão conectados às colunas reais do seu banco antes de liberar o uso operacional.</p></div></div>
-          </div>
+          {error && <div className="rounded-xl border border-rose-700/50 bg-rose-950/40 p-3 text-sm text-rose-200">{error}</div>}
+          {notice && <div className="rounded-xl border border-emerald-700/50 bg-emerald-950/30 p-3 text-sm text-emerald-200">{notice}</div>}
+          {!companies.length && <div className="rounded-2xl border border-amber-700/40 bg-amber-950/20 p-5"><h3 className="font-semibold text-amber-200">Cadastre sua primeira empresa</h3><p className="mt-1 text-sm text-slate-300">Os clientes e lançamentos ficam vinculados à empresa selecionada.</p><button onClick={()=>setShowCompanyForm(true)} className="mt-3 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold"><Plus size={16} className="mr-1 inline"/> Cadastrar empresa</button></div>}
+          {tab==="inicio" && <>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                {label:"Clientes",value:clients.filter(c=>c.empresa_id===companyId).length,icon:Users},
+                {label:"Recebido",value:money(received),icon:ArrowUpCircle},
+                {label:"Despesas pagas",value:money(spent),icon:ArrowDownCircle},
+                {label:"Saldo realizado",value:money(received-spent),icon:Wallet}
+              ].map(({label,value,icon:Icon})=><article key={label} className="rounded-2xl border border-line bg-panel p-5"><div className="flex items-center justify-between text-sm text-muted">{label}<Icon size={19} className="text-rose-300"/></div><p className="mt-4 text-2xl font-bold">{value}</p></article>)}
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <article className="rounded-2xl border border-line bg-panel p-5"><h3 className="font-semibold">Valores pendentes</h3><div className="mt-4 flex justify-between text-sm"><span className="text-muted">A receber</span><b>{money(pendingPayments)}</b></div><div className="mt-3 flex justify-between text-sm"><span className="text-muted">A pagar</span><b>{money(pendingExpenses)}</b></div></article>
+              <article className="rounded-2xl border border-line bg-panel p-5"><h3 className="font-semibold">Próximos vencimentos</h3>{upcoming.length ? <div className="mt-3 space-y-3">{upcoming.map(s=><div key={s.id} className="flex items-center justify-between gap-3 border-b border-line pb-2 text-sm"><span className="truncate">{clients.find(c=>c.id===s.cliente_id)?.nome ?? "Cliente"} · {s.nome_plano}</span><b>{new Date(s.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</b></div>)}</div> : <p className="mt-3 text-sm text-muted">Nenhuma assinatura ativa encontrada para esta empresa.</p>}</article>
+            </div>
+          </>}
+          {tab==="clientes" && <>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div className="relative min-w-52 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou telefone" className={inputClass+" pl-9"}/></div><button onClick={()=>setShowClientForm(!showClientForm)} disabled={!companyId} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button></div>
+            {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
+              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("Telefone",<input value={clientForm.telefone} onChange={e=>setClientForm({...clientForm,telefone:e.target.value})} className={inputClass}/>)}{field("WhatsApp",<input value={clientForm.whatsapp} onChange={e=>setClientForm({...clientForm,whatsapp:e.target.value})} className={inputClass}/>)}{field("Data de contratação",<input type="date" value={clientForm.data_contratacao} onChange={e=>setClientForm({...clientForm,data_contratacao:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
+              <div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Periodicidade",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
+              <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
+            </form>}
+            <div className="overflow-hidden rounded-2xl border border-line bg-panel"><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-muted"><tr><th className="p-4">Cliente</th><th className="p-4">Contato</th><th className="p-4">Assinatura / vencimento</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr></thead><tbody>{filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return <tr key={c.id} className="border-t border-line"><td className="p-4 font-medium">{c.nome}</td><td className="p-4 text-muted">{c.whatsapp||c.telefone||"—"}</td><td className="p-4">{sub?<><span>{sub.nome_plano}</span><span className="block text-xs text-muted">{new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</span></>:"Sem assinatura"}</td><td className="p-4"><span className={`rounded-full px-2 py-1 text-xs ${c.status==="ativo"?"bg-emerald-950 text-emerald-300":"bg-slate-800 text-slate-300"}`}>{c.status}</span></td><td className="p-4"><button onClick={()=>void deleteClient(c)} className="text-rose-300" title="Excluir cliente"><Trash2 size={16}/></button></td></tr>})}{!filteredClients.length&&<tr><td colSpan={5} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}</tbody></table></div></div>
+          </>}
+          {tab==="financeiro" && <>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{label:"Recebido",value:money(received)},{label:"Despesas pagas",value:money(spent)},{label:"A receber",value:money(pendingPayments)},{label:"A pagar",value:money(pendingExpenses)}].map(x=><article key={x.label} className="rounded-2xl border border-line bg-panel p-5"><p className="text-sm text-muted">{x.label}</p><p className="mt-3 text-xl font-bold">{x.value}</p></article>)}</div>
+            <div className="flex flex-wrap gap-2"><button onClick={()=>setShowPaymentForm(!showPaymentForm)} disabled={!companyId} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Registrar recebimento</button><button onClick={()=>setShowExpenseForm(!showExpenseForm)} disabled={!companyId} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Registrar despesa</button></div>
+            {showPaymentForm&&<form onSubmit={addPayment} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">{field("Descrição",<input value={paymentForm.descricao} onChange={e=>setPaymentForm({...paymentForm,descricao:e.target.value})} placeholder="Mensalidade, serviço..." className={inputClass}/>)}{field("Cliente (opcional)",<select value={paymentForm.cliente_id} onChange={e=>setPaymentForm({...paymentForm,cliente_id:e.target.value})} className={inputClass}><option value="">Sem vínculo</option>{clients.filter(c=>c.empresa_id===companyId).map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>)}{field("Valor (R$)",<input required type="number" min="0.01" step="0.01" value={paymentForm.valor} onChange={e=>setPaymentForm({...paymentForm,valor:e.target.value})} className={inputClass}/>)}{field("Vencimento",<input type="date" value={paymentForm.data_vencimento} onChange={e=>setPaymentForm({...paymentForm,data_vencimento:e.target.value})} className={inputClass}/>)}{field("Forma de pagamento",<select value={paymentForm.forma_pagamento} onChange={e=>setPaymentForm({...paymentForm,forma_pagamento:e.target.value})} className={inputClass}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option><option value="transferencia">Transferência</option><option value="outro">Outro</option></select>)}{field("Situação",<select value={paymentForm.status} onChange={e=>setPaymentForm({...paymentForm,status:e.target.value})} className={inputClass}><option value="pago">Recebido</option><option value="pendente">Pendente</option></select>)}<div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold">Salvar recebimento</button><button type="button" onClick={()=>setShowPaymentForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div></form>}
+            {showExpenseForm&&<form onSubmit={addExpense} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">{field("Descrição",<input required value={expenseForm.descricao} onChange={e=>setExpenseForm({...expenseForm,descricao:e.target.value})} className={inputClass}/>)}{field("Categoria",<input value={expenseForm.categoria} onChange={e=>setExpenseForm({...expenseForm,categoria:e.target.value})} placeholder="Internet, ferramentas..." className={inputClass}/>)}{field("Valor (R$)",<input required type="number" min="0.01" step="0.01" value={expenseForm.valor} onChange={e=>setExpenseForm({...expenseForm,valor:e.target.value})} className={inputClass}/>)}{field("Vencimento",<input type="date" value={expenseForm.data_vencimento} onChange={e=>setExpenseForm({...expenseForm,data_vencimento:e.target.value})} className={inputClass}/>)}{field("Forma de pagamento",<select value={expenseForm.forma_pagamento} onChange={e=>setExpenseForm({...expenseForm,forma_pagamento:e.target.value})} className={inputClass}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option><option value="transferencia">Transferência</option><option value="outro">Outro</option></select>)}{field("Situação",<select value={expenseForm.status} onChange={e=>setExpenseForm({...expenseForm,status:e.target.value})} className={inputClass}><option value="pendente">Pendente</option><option value="pago">Pago</option></select>)}{field("Observações",<input value={expenseForm.observacoes} onChange={e=>setExpenseForm({...expenseForm,observacoes:e.target.value})} className={inputClass}/>)}<div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">Salvar despesa</button><button type="button" onClick={()=>setShowExpenseForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div></form>}
+            <div className="grid gap-4 xl:grid-cols-2">
+              <article className="overflow-hidden rounded-2xl border border-line bg-panel"><h3 className="p-4 font-semibold">Recebimentos</h3><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs text-muted"><tr><th className="p-3">Descrição</th><th className="p-3">Valor</th><th className="p-3">Status</th><th className="p-3"></th></tr></thead><tbody>{companyPayments.map(p=><tr key={p.id} className="border-t border-line"><td className="p-3">{p.descricao||"Recebimento"}</td><td className="p-3">{money(p.valor)}</td><td className="p-3">{p.status}</td><td className="p-3"><button onClick={()=>void deleteFinance("pagamentos",p.id)} className="text-rose-300"><Trash2 size={15}/></button></td></tr>)}{!companyPayments.length&&<tr><td colSpan={4} className="p-5 text-center text-muted">Nenhum recebimento.</td></tr>}</tbody></table></div></article>
+              <article className="overflow-hidden rounded-2xl border border-line bg-panel"><h3 className="p-4 font-semibold">Despesas</h3><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs text-muted"><tr><th className="p-3">Descrição</th><th className="p-3">Valor</th><th className="p-3">Status</th><th className="p-3"></th></tr></thead><tbody>{companyExpenses.map(e=><tr key={e.id} className="border-t border-line"><td className="p-3">{e.descricao}</td><td className="p-3">{money(e.valor)}</td><td className="p-3">{e.status}</td><td className="p-3"><button onClick={()=>void deleteFinance("despesas",e.id)} className="text-rose-300"><Trash2 size={15}/></button></td></tr>)}{!companyExpenses.length&&<tr><td colSpan={4} className="p-5 text-center text-muted">Nenhuma despesa.</td></tr>}</tbody></table></div></article>
+            </div>
+          </>}
         </div>
       </section>
+      {showCompanyForm&&<div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4"><form onSubmit={addCompany} className="w-full max-w-md rounded-2xl border border-line bg-panel p-5"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">Cadastrar empresa</h3><button type="button" onClick={()=>setShowCompanyForm(false)}><X size={18}/></button></div><label className="block text-sm text-slate-300">Nome da empresa<input required value={companyName} onChange={e=>setCompanyName(e.target.value)} className={inputClass+" mt-2"}/></label><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={()=>setShowCompanyForm(false)} className="rounded-xl border border-line px-4 py-2 text-sm">Cancelar</button><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold">Salvar</button></div></form></div>}
     </main>
   );
 }
