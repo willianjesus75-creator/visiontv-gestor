@@ -209,7 +209,6 @@ export default function Home() {
   async function renewClient(client: Client) {
     const sub = subscriptions.find(x => x.cliente_id === client.id);
     if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
-    const paid = window.confirm("O cliente já pagou " + money(sub.valor) + "? OK = sim; Cancelar = não.");
     const base = new Date((sub.data_vencimento < today() ? today() : sub.data_vencimento) + "T12:00:00");
     const originalDay = base.getDate();
     base.setDate(1);
@@ -219,8 +218,7 @@ export default function Home() {
     const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0"); setBusy(true); setError("");
     const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
     if (error) { setError(error.message); setBusy(false); return; }
-    if (paid) { const { error: paymentError } = await supabase.from("pagamentos").insert({owner_id:user?.id,empresa_id:client.empresa_id,cliente_id:client.id,valor:sub.valor,descricao:"Renovação - "+client.nome,data_vencimento:due,data_pagamento:today(),forma_pagamento:"pix",status:"pago"}); if (paymentError) setError("Vencimento atualizado, mas o recebimento falhou: "+paymentError.message); }
-    setNotice(paid ? "Renovação e recebimento registrados." : "Renovação registrada sem lançar pagamento."); await loadData(); setBusy(false);
+    setNotice("Vencimento do cliente atualizado. Se houve pagamento, registre-o separadamente na aba Financeiro."); await loadData(); setBusy(false);
   }
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
@@ -247,6 +245,7 @@ export default function Home() {
       && (!dueFrom || (!!sub && sub.data_vencimento >= dueFrom))
       && (!dueTo || (!!sub && sub.data_vencimento <= dueTo));
   }), [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter, dueFrom, dueTo]);
+  const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
   const received = companyPayments.filter((p) => p.status === "pago").reduce((sum, p) => sum + Number(p.valor), 0);
@@ -319,15 +318,15 @@ export default function Home() {
           {tab==="inicio" && <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                {label:"Clientes",value:clients.filter(c=>c.empresa_id===companyId).length,icon:Users},
-                {label:"Recebido",value:money(received),icon:ArrowUpCircle},
-                {label:"Despesas pagas",value:money(spent),icon:ArrowDownCircle},
-                {label:"Saldo realizado",value:money(received-spent),icon:Wallet}
+                {label:"Clientes cadastrados",value:clients.filter(c=>c.empresa_id===companyId).length,icon:Users},
+                {label:"Valor dos planos",value:money(clientSubscriptions.reduce((sum,sub)=>sum+Number(sub.valor||0),0)),icon:CreditCard},
+                {label:"Clientes ativos",value:clientSubscriptions.filter(sub=>sub.data_vencimento>=today() && sub.status==="ativa").length,icon:Activity},
+                {label:"Clientes vencidos",value:clientSubscriptions.filter(sub=>sub.data_vencimento<today()).length,icon:CalendarDays}
               ].map(({label,value,icon:Icon})=><article key={label} className="rounded-2xl border border-line bg-panel p-5"><div className="flex items-center justify-between text-sm text-muted">{label}<Icon size={19} className="text-rose-300"/></div><p className="mt-4 text-2xl font-bold">{value}</p></article>)}
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              <article className="rounded-2xl border border-line bg-panel p-5"><h3 className="font-semibold">Valores pendentes</h3><div className="mt-4 flex justify-between text-sm"><span className="text-muted">A receber</span><b>{money(pendingPayments)}</b></div><div className="mt-3 flex justify-between text-sm"><span className="text-muted">A pagar</span><b>{money(pendingExpenses)}</b></div></article>
-              <article className="rounded-2xl border border-line bg-panel p-5"><h3 className="font-semibold">Próximos vencimentos</h3>{upcoming.length ? <div className="mt-3 space-y-3">{upcoming.map(s=><div key={s.id} className="flex items-center justify-between gap-3 border-b border-line pb-2 text-sm"><span className="truncate">{clients.find(c=>c.id===s.cliente_id)?.nome ?? "Cliente"} · {s.nome_plano}</span><b>{new Date(s.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</b></div>)}</div> : <p className="mt-3 text-sm text-muted">Nenhuma assinatura ativa encontrada para esta empresa.</p>}</article>
+              <article className="rounded-2xl border border-line bg-panel p-5"><h3 className="font-semibold">Resumo dos clientes</h3><div className="mt-4 flex justify-between text-sm"><span className="text-muted">Assinaturas cadastradas</span><b>{clientSubscriptions.length}</b></div><div className="mt-3 flex justify-between text-sm"><span className="text-muted">Valor total dos planos</span><b>{money(clientSubscriptions.reduce((sum,sub)=>sum+Number(sub.valor||0),0))}</b></div></article>
+              <article className="rounded-2xl border border-line bg-panel p-5"><h3 className="font-semibold">Próximos vencimentos</h3>{upcoming.length ? <div className="mt-3 space-y-3">{upcoming.map(s=><div key={s.id} className="flex items-center justify-between gap-3 border-b border-line pb-2 text-sm"><span className="truncate">{clients.find(c=>c.id===s.cliente_id)?.nome ?? "Cliente"} · {s.nome_plano} · {money(s.valor)}</span><b>{new Date(s.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</b></div>)}</div> : <p className="mt-3 text-sm text-muted">Nenhuma assinatura ativa encontrada para esta empresa.</p>}</article>
             </div>
           </>}
           {tab==="clientes" && <>
