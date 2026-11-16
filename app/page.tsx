@@ -370,7 +370,7 @@ export default function Home() {
                       <td className="p-4 capitalize">{sub?.periodicidade||"—"}</td>
                       <td className="p-4">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="p-4">{sub?sub.quantidade_telas+" acesso(s)":"—"}</td>
-                      <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div><div className="mt-1 text-xs text-muted">Venc. aplicativo: {c.app_vencimento?new Date(c.app_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
+                      <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div><div className="mt-1 text-xs text-muted">Validade app: {c.app_vencimento?new Date(c.app_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
                       <td className="p-4 font-semibold text-white">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
