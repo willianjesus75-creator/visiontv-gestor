@@ -171,34 +171,50 @@ export default function Home() {
   async function addPayment(event: React.FormEvent) {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa primeiro."); return; }
+    const amount = Number(paymentForm.valor);
+    if (!Number.isFinite(amount) || amount <= 0) { setError("Informe um valor válido para o recebimento."); return; }
     setBusy(true); setError(""); setNotice("");
-    const { data, error } = await supabase.from("pagamentos").insert({
-      owner_id: user.id, empresa_id: companyId, categoria: paymentForm.categoria.trim() || null,
-      valor: Number(paymentForm.valor), descricao: paymentForm.descricao || "Recebimento",
-      data_vencimento: paymentForm.data_vencimento || null,
-      data_pagamento: paymentForm.status === "pago" ? (paymentForm.data_pagamento || today()) : null,
-      forma_pagamento: paymentForm.forma_pagamento, status: paymentForm.status
-    }).select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").single();
-    if (error) setError(error.message);
-    else { setPayments((old) => [data as Payment, ...old]); setPaymentForm({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" }); setShowPaymentForm(false); setNotice("Recebimento registrado."); }
-    setBusy(false);
+    try {
+      const { data, error } = await supabase.from("pagamentos").insert({
+        owner_id: user.id, empresa_id: companyId, categoria: paymentForm.categoria.trim() || null,
+        valor: amount, descricao: paymentForm.descricao.trim() || "Recebimento",
+        data_vencimento: paymentForm.data_vencimento || today(),
+        data_pagamento: paymentForm.status === "pago" ? (paymentForm.data_pagamento || today()) : null,
+        forma_pagamento: paymentForm.forma_pagamento, status: paymentForm.status
+      }).select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").single();
+      if (error) throw error;
+      setPayments((old) => [data as Payment, ...old]);
+      setPaymentForm({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
+      setShowPaymentForm(false); setNotice("Recebimento registrado com sucesso.");
+      await loadData();
+    } catch (err) { setError("Não foi possível salvar o recebimento: " + (err instanceof Error ? err.message : "erro inesperado")); }
+    finally { setBusy(false); }
   }
 
   async function addExpense(event: React.FormEvent) {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa primeiro."); return; }
+    const amount = Number(expenseForm.valor);
+    if (!expenseForm.descricao.trim()) { setError("Informe a descrição da despesa."); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { setError("Informe um valor válido para a despesa."); return; }
+    if (!expenseForm.categoria.trim()) { setError("Informe a categoria da despesa."); return; }
     setBusy(true); setError(""); setNotice("");
-    const { data, error } = await supabase.from("despesas").insert({
-      owner_id: user.id, empresa_id: companyId, descricao: expenseForm.descricao.trim(),
-      categoria: expenseForm.categoria || null, valor: Number(expenseForm.valor),
-      data_vencimento: expenseForm.data_vencimento || null,
-      data_pagamento: expenseForm.status === "pago" ? (expenseForm.data_pagamento || today()) : null,
-      forma_pagamento: expenseForm.forma_pagamento, status: expenseForm.status,
-      observacoes: expenseForm.observacoes || null
-    }).select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").single();
-    if (error) setError(error.message);
-    else { setExpenses((old) => [data as Expense, ...old]); setExpenseForm({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" }); setShowExpenseForm(false); setNotice("Despesa registrada."); }
-    setBusy(false);
+    try {
+      const { data, error } = await supabase.from("despesas").insert({
+        owner_id: user.id, empresa_id: companyId, descricao: expenseForm.descricao.trim(),
+        categoria: expenseForm.categoria.trim(), valor: amount,
+        data_vencimento: expenseForm.data_vencimento || today(),
+        data_pagamento: expenseForm.status === "pago" ? (expenseForm.data_pagamento || today()) : null,
+        forma_pagamento: expenseForm.forma_pagamento, status: expenseForm.status,
+        observacoes: expenseForm.observacoes.trim() || null
+      }).select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").single();
+      if (error) throw error;
+      setExpenses((old) => [data as Expense, ...old]);
+      setExpenseForm({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
+      setShowExpenseForm(false); setNotice("Despesa registrada com sucesso.");
+      await loadData();
+    } catch (err) { setError("Não foi possível salvar a despesa: " + (err instanceof Error ? err.message : "erro inesperado")); }
+    finally { setBusy(false); }
   }
 
   function editClient(client: Client) {
