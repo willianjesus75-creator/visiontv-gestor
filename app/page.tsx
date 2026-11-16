@@ -336,7 +336,7 @@ export default function Home() {
                 <div className="relative min-w-0 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente por nome, WhatsApp ou MAC" className={inputClass+" pl-9"}/></div>
                 <div className="flex gap-2">
                   <button type="button" onClick={()=>setShowFilters(v=>!v)} aria-expanded={showFilters} className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${showFilters?"border-rose-500 bg-rose-600/15 text-rose-200":"border-line text-slate-200 hover:bg-slate-800"}`}><SlidersHorizontal size={17}/> Filtros <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-xs">{[statusFilter!=="todos",appFilter!=="todos",planFilter!=="todos",!!dueFrom,!!dueTo].filter(Boolean).length}</span></button>
-                  <button onClick={()=>{setEditingClient(null);setShowClientForm(!showClientForm)}} disabled={!companyId} className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
+                  <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",whatsapp:"",mac:"",aplicativo:"",observacoes:"",data_contratacao:today(),status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
                 </div>
               </div>
               {showFilters && <div className="space-y-3 border-t border-line pt-3">
