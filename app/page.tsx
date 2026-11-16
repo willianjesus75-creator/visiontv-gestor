@@ -10,8 +10,9 @@ import {
 
 type Company = { id: string; nome: string; tipo?: string | null };
 type Client = {
-  id: string; empresa_id: string; nome: string; telefone: string | null;
-  whatsapp: string | null; data_contratacao: string | null; status: string;
+  id: string; empresa_id: string; nome: string; whatsapp: string | null;
+  mac: string | null; aplicativo: string | null; observacoes: string | null;
+  data_contratacao: string | null; status: string;
 };
 type Payment = {
   id: string; empresa_id: string; cliente_id: string | null; valor: number;
@@ -30,6 +31,7 @@ type Subscription = {
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const today = () => new Date().toISOString().slice(0, 10);
+const VISIONTV_LOGO = "data:image/webp;base64,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";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -51,10 +53,14 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [search, setSearch] = useState("");
-  const [clientForm, setClientForm] = useState({ nome: "", telefone: "", whatsapp: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+  const [clientForm, setClientForm] = useState({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
   const [paymentForm, setPaymentForm] = useState({ cliente_id: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
   const [showClientForm, setShowClientForm] = useState(false);
+  const [editingClient, setEditingClient] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [appFilter, setAppFilter] = useState("todos");
+  const [planFilter, setPlanFilter] = useState("todos");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showCompanyForm, setShowCompanyForm] = useState(false);
@@ -82,7 +88,7 @@ export default function Home() {
     setError("");
     const [c, cl, p, e, s] = await Promise.all([
       supabase.from("empresas").select("id,nome,tipo").order("nome"),
-      supabase.from("clientes").select("id,empresa_id,nome,telefone,whatsapp,data_contratacao,status").order("nome"),
+      supabase.from("clientes").select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,data_contratacao,status").order("nome"),
       supabase.from("pagamentos").select("id,empresa_id,cliente_id,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").order("created_at", { ascending: false }),
       supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").order("created_at", { ascending: false }),
       supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status").order("data_vencimento")
@@ -131,26 +137,28 @@ export default function Home() {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
     setBusy(true); setError(""); setNotice("");
-    const { data, error } = await supabase.from("clientes").insert({
-      owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(),
-      telefone: clientForm.telefone || null, whatsapp: clientForm.whatsapp || null,
-      data_contratacao: clientForm.data_contratacao || null, status: clientForm.status
-    }).select("id,empresa_id,nome,telefone,whatsapp,data_contratacao,status").single();
+    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), whatsapp: clientForm.whatsapp || null, mac: clientForm.mac || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, data_contratacao: clientForm.data_contratacao || null, status: clientForm.status };
+    const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
+    const { data, error } = await request.select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,data_contratacao,status").single();
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
-        const { error: subError } = await supabase.from("assinaturas").insert({
+        const subscriptionPayload = {
           owner_id: user.id, empresa_id: companyId, cliente_id: data.id,
           nome_plano: clientForm.plano, quantidade_telas: Number(clientForm.telas),
           valor: Number(clientForm.valor), periodicidade: clientForm.periodicidade,
           data_inicio: clientForm.data_contratacao || today(), data_vencimento: clientForm.vencimento,
           status: "ativa"
-        });
-        if (subError) setError("Cliente salvo, mas a assinatura não foi criada: " + subError.message);
+        };
+        const currentSub = subscriptions.find(x => x.cliente_id === data.id);
+        const { error: subError } = currentSub
+          ? await supabase.from("assinaturas").update(subscriptionPayload).eq("id", currentSub.id)
+          : await supabase.from("assinaturas").insert(subscriptionPayload);
+        if (subError) setError("Cliente salvo, mas a assinatura não foi atualizada: " + subError.message);
       }
       setClients((old) => [data as Client, ...old]);
-      setClientForm({ nome: "", telefone: "", whatsapp: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
-      setShowClientForm(false); setNotice("Cliente cadastrado.");
+      setClientForm({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+      setShowClientForm(false); setEditingClient(null); setNotice(editingClient ? "Cliente atualizado." : "Cliente cadastrado.");
       await loadData();
     }
     setBusy(false);
@@ -189,6 +197,28 @@ export default function Home() {
     setBusy(false);
   }
 
+  function editClient(client: Client) {
+    const sub = subscriptions.find(x => x.cliente_id === client.id);
+    setEditingClient(client.id);
+    setClientForm({nome:client.nome,whatsapp:client.whatsapp??"",mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",data_contratacao:client.data_contratacao??today(),status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
+    setShowClientForm(true);
+  }
+  async function renewClient(client: Client) {
+    const sub = subscriptions.find(x => x.cliente_id === client.id);
+    if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
+    const paid = window.confirm("O cliente já pagou " + money(sub.valor) + "? OK = sim; Cancelar = não.");
+    const base = new Date((sub.data_vencimento < today() ? today() : sub.data_vencimento) + "T12:00:00");
+    const originalDay = base.getDate();
+    base.setDate(1);
+    base.setMonth(base.getMonth() + (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1));
+    const lastDay = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+    base.setDate(Math.min(originalDay,lastDay));
+    const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0"); setBusy(true); setError("");
+    const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
+    if (error) { setError(error.message); setBusy(false); return; }
+    if (paid) { const { error: paymentError } = await supabase.from("pagamentos").insert({owner_id:user?.id,empresa_id:client.empresa_id,cliente_id:client.id,valor:sub.valor,descricao:"Renovação - "+client.nome,data_vencimento:due,data_pagamento:today(),forma_pagamento:"pix",status:"pago"}); if (paymentError) setError("Vencimento atualizado, mas o recebimento falhou: "+paymentError.message); }
+    setNotice(paid ? "Renovação e recebimento registrados." : "Renovação registrada sem lançar pagamento."); await loadData(); setBusy(false);
+  }
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
     const { error } = await supabase.from("clientes").delete().eq("id", client.id);
@@ -201,7 +231,12 @@ export default function Home() {
     else { if (table === "pagamentos") setPayments((old) => old.filter((x) => x.id !== id)); else setExpenses((old) => old.filter((x) => x.id !== id)); setNotice("Lançamento excluído."); }
   }
 
-  const filteredClients = useMemo(() => clients.filter((c) => c.empresa_id === companyId && (c.nome.toLowerCase().includes(search.toLowerCase()) || (c.telefone ?? "").includes(search))), [clients, companyId, search]);
+  const filteredClients = useMemo(() => clients.filter((c) => {
+    const sub = subscriptions.find(x => x.cliente_id === c.id);
+    const days = sub ? Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null;
+    const status = days === null ? "sem_assinatura" : days < 0 ? "vencido" : days === 0 ? "hoje" : days <= 7 ? "proximo" : "ativo";
+    return c.empresa_id === companyId && (c.nome.toLowerCase().includes(search.toLowerCase()) || (c.whatsapp ?? "").includes(search) || (c.mac ?? "").toLowerCase().includes(search.toLowerCase())) && (statusFilter === "todos" || status === statusFilter) && (appFilter === "todos" || c.aplicativo === appFilter) && (planFilter === "todos" || sub?.periodicidade === planFilter);
+  }), [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter]);
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
   const received = companyPayments.filter((p) => p.status === "pago").reduce((sum, p) => sum + Number(p.valor), 0);
@@ -214,7 +249,7 @@ export default function Home() {
   if (recoveryMode) return (
     <main className="min-h-screen flex items-center justify-center p-5">
       <section className="w-full max-w-md rounded-3xl border border-line bg-panel p-8 shadow-2xl">
-        <div className="mb-6 flex items-center gap-3"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600"><Activity size={25}/></div><div><h1 className="text-2xl font-bold">VisionTV Gestor</h1><p className="text-sm text-muted">Redefinição de senha</p></div></div>
+        <div className="mb-6 flex justify-center"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-32 w-full max-w-xs object-contain" /></div><div className="mb-6 text-center"><h1 className="text-2xl font-bold">VisionTV Gestor</h1><p className="text-sm text-muted">Redefinição de senha</p></div>
         <h2 className="mb-2 text-xl font-semibold">Crie uma nova senha</h2>
         <form onSubmit={updatePassword} className="space-y-4">
           <label className="block text-sm text-slate-300">Nova senha<input value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} type="password" minLength={8} required autoComplete="new-password" className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3"/></label>
@@ -229,7 +264,7 @@ export default function Home() {
   if (!user) return (
     <main className="min-h-screen flex items-center justify-center p-5">
       <section className="w-full max-w-md rounded-3xl border border-line bg-panel p-8 shadow-2xl">
-        <div className="mb-8 flex items-center gap-3"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600"><Activity size={25}/></div><div><h1 className="text-2xl font-bold">VisionTV Gestor</h1><p className="text-sm text-muted">Gestão em um só lugar</p></div></div>
+        <div className="mb-8"><img src={VISIONTV_LOGO} alt="VisionTV" className="mx-auto h-36 w-full max-w-sm object-contain" /><p className="mt-2 text-center text-sm text-muted">Gestão em um só lugar</p></div>
         <h2 className="mb-2 text-xl font-semibold">Acessar sua conta</h2><p className="mb-6 text-sm text-muted">Entre com sua conta cadastrada.</p>
         <form onSubmit={signIn} className="space-y-4">
           <label className="block text-sm text-slate-300">E-mail<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" required className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3"/></label>
@@ -249,14 +284,14 @@ export default function Home() {
   return (
     <main className="min-h-screen md:flex">
       <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-30 w-64 border-r border-line bg-[#0d1421] p-5 md:block`}>
-        <div className="mb-10 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-600"><Activity/></div><div><b>VisionTV</b><p className="text-xs text-muted">GESTOR</p></div></div>
+        <div className="mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-24 w-full object-contain" /><p className="mt-1 text-center text-xs tracking-widest text-muted">GESTOR</p></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
         <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${tab===id ? "bg-rose-600/15 text-rose-300" : "text-slate-400 hover:bg-slate-800"}`}><Icon size={18}/>{label}</button>)}</nav>
         <div className="absolute bottom-5 left-5 right-5 text-xs text-muted">Acesso privado • VisionTV Gestor</div>
       </aside>
       <section className="min-w-0 flex-1 md:ml-64">
         <header className="flex items-center justify-between border-b border-line bg-[#0d1421] px-4 py-4 md:px-8">
-          <div className="flex items-center gap-3"><button onClick={()=>setMenuOpen(!menuOpen)} className="rounded-lg border border-line p-2 md:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div><p className="text-sm text-muted">Painel de controle</p><h1 className="text-xl font-bold">VisionTV Gestor</h1></div></div>
+          <div className="flex items-center gap-3"><button onClick={()=>setMenuOpen(!menuOpen)} className="rounded-lg border border-line p-2 md:hidden" aria-label="Abrir menu"><Menu size={19}/></button><div className="flex items-center gap-3"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-12 w-24 object-contain" /><div><p className="text-sm text-muted">Painel de controle</p><h1 className="text-xl font-bold">VisionTV Gestor</h1></div></div></div>
           <div className="flex items-center gap-2"><span className="hidden max-w-48 truncate text-xs text-muted sm:block">{user.email}</span><button onClick={signOut} className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm text-slate-300"><LogOut size={16}/><span className="hidden sm:inline">Sair</span></button></div>
         </header>
         <div className="space-y-6 p-4 md:p-8">
@@ -286,13 +321,13 @@ export default function Home() {
             </div>
           </>}
           {tab==="clientes" && <>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div className="relative min-w-52 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome ou telefone" className={inputClass+" pl-9"}/></div><button onClick={()=>setShowClientForm(!showClientForm)} disabled={!companyId} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div className="relative min-w-52 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, WhatsApp ou MAC" className={inputClass+" pl-9"}/></div><button onClick={()=>{setEditingClient(null);setShowClientForm(!showClientForm)}} disabled={!companyId} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button></div><div className="flex flex-wrap gap-2"><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass+" w-auto"}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="sem_assinatura">Sem assinatura</option></select><select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass+" w-auto"}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select><select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass+" w-auto"}><option value="todos">Todas periodicidades</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></div>
             {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
-              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("Telefone",<input value={clientForm.telefone} onChange={e=>setClientForm({...clientForm,telefone:e.target.value})} className={inputClass}/>)}{field("WhatsApp",<input value={clientForm.whatsapp} onChange={e=>setClientForm({...clientForm,whatsapp:e.target.value})} className={inputClass}/>)}{field("Data de contratação",<input type="date" value={clientForm.data_contratacao} onChange={e=>setClientForm({...clientForm,data_contratacao:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
-              <div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Periodicidade",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
-              <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
+              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("WhatsApp",<input value={clientForm.whatsapp} onChange={e=>setClientForm({...clientForm,whatsapp:e.target.value})} className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Data de contratação",<input type="date" value={clientForm.data_contratacao} onChange={e=>setClientForm({...clientForm,data_contratacao:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
+              {field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/ >)}<div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Periodicidade",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
+              <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form>}
-            <div className="overflow-hidden rounded-2xl border border-line bg-panel"><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-muted"><tr><th className="p-4">Cliente</th><th className="p-4">Contato</th><th className="p-4">Assinatura / vencimento</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr></thead><tbody>{filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return <tr key={c.id} className="border-t border-line"><td className="p-4 font-medium">{c.nome}</td><td className="p-4 text-muted">{c.whatsapp||c.telefone||"—"}</td><td className="p-4">{sub?<><span>{sub.nome_plano}</span><span className="block text-xs text-muted">{new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</span></>:"Sem assinatura"}</td><td className="p-4"><span className={`rounded-full px-2 py-1 text-xs ${c.status==="ativo"?"bg-emerald-950 text-emerald-300":"bg-slate-800 text-slate-300"}`}>{c.status}</span></td><td className="p-4"><button onClick={()=>void deleteClient(c)} className="text-rose-300" title="Excluir cliente"><Trash2 size={16}/></button></td></tr>})}{!filteredClients.length&&<tr><td colSpan={5} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}</tbody></table></div></div>
+            <div className="overflow-hidden rounded-2xl border border-line bg-panel"><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-muted"><tr><th className="p-4">Cliente</th><th className="p-4">Contato</th><th className="p-4">Assinatura / vencimento</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr></thead><tbody>{filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return <tr key={c.id} className="border-t border-line"><td className="p-4 font-medium">{c.nome}</td><td className="p-4 text-muted">{c.whatsapp||"—"}<span className="block text-xs text-muted">{c.aplicativo||"Sem aplicativo"} · {c.mac||"Sem MAC"}</span></td><td className="p-4">{sub?<><span>{sub.nome_plano}</span><span className="block text-xs text-muted">{new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</span></>:"Sem assinatura"}</td><td className="p-4"><span className={`rounded-full px-2 py-1 text-xs ${c.status==="ativo"?"bg-emerald-950 text-emerald-300":"bg-slate-800 text-slate-300"}`}>{c.status}</span></td><td className="p-4"><div className="flex gap-2"><button onClick={()=>editClient(c)} className="text-sky-300">Editar</button><button onClick={()=>void renewClient(c)} disabled={busy} className="text-emerald-300">Renovar</button><button onClick={()=>void deleteClient(c)} className="text-rose-300" title="Excluir cliente"><Trash2 size={16}/></button></div></td></tr>})}{!filteredClients.length&&<tr><td colSpan={5} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}</tbody></table></div></div>
           </>}
           {tab==="financeiro" && <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{label:"Recebido",value:money(received)},{label:"Despesas pagas",value:money(spent)},{label:"A receber",value:money(pendingPayments)},{label:"A pagar",value:money(pendingExpenses)}].map(x=><article key={x.label} className="rounded-2xl border border-line bg-panel p-5"><p className="text-sm text-muted">{x.label}</p><p className="mt-3 text-xl font-bold">{x.value}</p></article>)}</div>
