@@ -337,11 +337,14 @@ export default function Home() {
         <div className="space-y-6 p-4 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">{tab!=="financeiro" && <><h2 className="text-2xl font-bold">{tab==="inicio"?"Visão geral":"Gestão de clientes"}</h2><p className="mt-1 text-sm text-muted">Dados sincronizados com sua conta na nuvem.</p></>}</div>
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <div className="ml-auto flex flex-col items-end gap-2">
               {tab==="financeiro" && <div className="flex h-10 items-center gap-1 rounded-full border border-[#38577e] bg-[#101c2e] px-2 shadow-inner shadow-black/20"><CalendarDays size={14} className="ml-1 text-sky-300"/><select aria-label="Mês do financeiro" value={periodMonth} onChange={e=>{setPeriodMonth(Number(e.target.value));setPeriodManual(true);}} className="w-[5.7rem] appearance-none bg-transparent px-1.5 py-1 text-xs font-semibold capitalize text-slate-100 outline-none">{["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"].map((m,i)=><option className="bg-[#101c2e]" key={m} value={i+1}>{m}</option>)}</select><span className="h-4 w-px bg-[#405675]"/><select aria-label="Ano do financeiro" value={periodYear} onChange={e=>{setPeriodYear(Number(e.target.value));setPeriodManual(true);}} className="w-[3.6rem] appearance-none bg-transparent px-1 text-xs font-semibold text-slate-100 outline-none">{Array.from({length:11},(_,i)=>new Date().getFullYear()-5+i).map(y=><option className="bg-[#101c2e]" key={y} value={y}>{y}</option>)}</select><button type="button" onClick={()=>{setPeriodManual(false);setPeriodMonth(new Date().getMonth()+1);setPeriodYear(new Date().getFullYear());}} className="rounded-full bg-sky-400/10 px-2.5 py-1.5 text-[10px] font-bold text-sky-300 transition hover:bg-sky-400/20">Hoje</button></div>}
-              <select aria-label="Selecionar empresa" value={companyId} onChange={(e)=>setCompanyId(e.target.value)} className={inputClass+" h-9 w-auto min-w-0 max-w-32 px-2.5 py-1 text-xs"}><option value="">Empresa</option>{companies.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>
-              <button onClick={()=>setShowCompanyForm(true)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-semibold hover:bg-[#171717]"><Building2 size={14}/> Empresa</button>
-              <button onClick={()=>void loadData()} className="flex h-9 w-9 items-center justify-center rounded-lg border border-line hover:bg-[#171717]" title="Atualizar"><RefreshCw size={14}/></button>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <select aria-label="Selecionar empresa" value={companyId} onChange={(e)=>setCompanyId(e.target.value)} className={inputClass+" h-9 w-auto min-w-0 max-w-32 px-2.5 py-1 text-xs"}><option value="">Empresa</option>{companies.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+                <button onClick={()=>setShowCompanyForm(true)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-semibold hover:bg-[#171717]"><Building2 size={14}/> Empresa</button>
+                <button onClick={()=>void loadData()} className="flex h-9 w-9 items-center justify-center rounded-lg border border-line hover:bg-[#171717]" title="Atualizar"><RefreshCw size={14}/></button>
+                </div>
+              </div>
             </div>
           </div>
           {error && <div className="rounded-xl border border-rose-700/50 bg-rose-950/40 p-3 text-sm text-rose-200">{error}</div>}
