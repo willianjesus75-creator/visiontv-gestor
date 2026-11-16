@@ -293,10 +293,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen md:flex">
-      <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-30 w-64 border-r border-line bg-[#080808] p-5 md:block`}>
+      <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-30 w-64 border-r border-[#35151a] bg-[#080808] p-5 md:block`}>
         <div className="mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-24 w-full object-contain" /><p className="mt-1 text-center text-xs tracking-widest text-muted">GESTOR</p></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
-        <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${tab===id ? "bg-[#ed1c35]/20 text-rose-200" : "text-slate-400 hover:bg-[#171717]"}`}><Icon size={18}/>{label}</button>)}</nav>
+        <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}</nav>
         <div className="absolute bottom-5 left-5 right-5 text-xs text-muted">Acesso privado • VisionTV Gestor</div>
       </aside>
       <section className="min-w-0 flex-1 md:ml-64">
