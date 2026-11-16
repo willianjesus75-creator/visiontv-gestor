@@ -2,12 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+  --vision-bg: #070b14;
+  --vision-panel: #101d33;
+  --vision-panel-soft: #142743;
+  --vision-blue: #1b3b65;
+  --vision-line: #294363;
+  --vision-red: #ed1c35;
+}
 * { box-sizing: border-box; }
+html { min-height: 100%; background: var(--vision-bg); }
 body {
+  min-height: 100vh;
   margin: 0;
-  background: #090d16;
+  background:
+    radial-gradient(ellipse at 82% 0%, rgba(27, 59, 101, .24), transparent 38%),
+    linear-gradient(145deg, #050810 0%, #0a1220 48%, #080d18 100%);
   color: #f8fafc;
   font-family: Arial, Helvetica, sans-serif;
 }
-button, input { font: inherit; }
+button, input, select, textarea { font: inherit; }
+::selection { background: rgba(237, 28, 53, .35); color: #fff; }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #ed1c35 !important;
+  box-shadow: 0 0 0 3px rgba(237, 28, 53, .12);
+}
