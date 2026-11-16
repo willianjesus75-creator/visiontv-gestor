@@ -386,7 +386,7 @@ export default function Home() {
             </form>}
             <div className="overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1350px] text-left text-sm">
+                <table className="w-full min-w-[1350px] text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[11px] uppercase tracking-wider text-slate-200">
                     <tr>
                       <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Aplicativo / MAC / Validade do app</th><th className="p-4">Valor</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
@@ -394,7 +394,7 @@ export default function Home() {
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-white/[0.07] align-top transition-colors hover:bg-[#203a59]/35">
-                      <td className="p-4"><div className="min-w-[150px]"><div className="font-semibold text-white">{c.nome}</div></div></td>
+                      <td className="p-4 text-center"><div className="min-w-[150px]"><div className="font-semibold text-white">{c.nome}</div></div></td>
                       <td className="p-4 font-medium text-slate-200">{c.indicacao||"—"}</td>
                       <td className="p-4 max-w-[220px] whitespace-normal text-xs text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4">{sub?.nome_plano||"Sem plano"}</td>
@@ -403,7 +403,7 @@ export default function Home() {
                       <td className="p-4 font-bold text-emerald-300">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
-                      <td className="p-4"><div className="flex min-w-[132px] items-center gap-1.5"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-2 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-2 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-2 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
+                      <td className="p-4"><div className="flex min-w-[132px] items-center justify-center gap-1.5"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-2 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-2 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-2 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
                     </tr>})}
                     {!filteredClients.length&&<tr><td colSpan={11} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
                   </tbody>
