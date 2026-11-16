@@ -143,14 +143,18 @@ export default function Home() {
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
-        const { error: subError } = await supabase.from("assinaturas").insert({
+        const subscriptionPayload = {
           owner_id: user.id, empresa_id: companyId, cliente_id: data.id,
           nome_plano: clientForm.plano, quantidade_telas: Number(clientForm.telas),
           valor: Number(clientForm.valor), periodicidade: clientForm.periodicidade,
           data_inicio: clientForm.data_contratacao || today(), data_vencimento: clientForm.vencimento,
           status: "ativa"
-        });
-        if (subError) setError("Cliente salvo, mas a assinatura não foi criada: " + subError.message);
+        };
+        const currentSub = subscriptions.find(x => x.cliente_id === data.id);
+        const { error: subError } = currentSub
+          ? await supabase.from("assinaturas").update(subscriptionPayload).eq("id", currentSub.id)
+          : await supabase.from("assinaturas").insert(subscriptionPayload);
+        if (subError) setError("Cliente salvo, mas a assinatura não foi atualizada: " + subError.message);
       }
       setClients((old) => [data as Client, ...old]);
       setClientForm({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
@@ -204,8 +208,12 @@ export default function Home() {
     if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
     const paid = window.confirm("O cliente já pagou " + money(sub.valor) + "? OK = sim; Cancelar = não.");
     const base = new Date((sub.data_vencimento < today() ? today() : sub.data_vencimento) + "T12:00:00");
+    const originalDay = base.getDate();
+    base.setDate(1);
     base.setMonth(base.getMonth() + (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1));
-    const due = base.toISOString().slice(0,10); setBusy(true); setError("");
+    const lastDay = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+    base.setDate(Math.min(originalDay,lastDay));
+    const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0"); setBusy(true); setError("");
     const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
     if (error) { setError(error.message); setBusy(false); return; }
     if (paid) { const { error: paymentError } = await supabase.from("pagamentos").insert({owner_id:user?.id,empresa_id:client.empresa_id,cliente_id:client.id,valor:sub.valor,descricao:"Renovação - "+client.nome,data_vencimento:due,data_pagamento:today(),forma_pagamento:"pix",status:"pago"}); if (paymentError) setError("Vencimento atualizado, mas o recebimento falhou: "+paymentError.message); }
