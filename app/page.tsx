@@ -345,7 +345,6 @@ export default function Home() {
                 <button onClick={()=>void loadData()} className="flex h-9 w-9 items-center justify-center rounded-lg border border-line hover:bg-[#171717]" title="Atualizar"><RefreshCw size={14}/></button>
                 </div>
               </div>
-            </div>
           </div>
           {error && <div className="rounded-xl border border-rose-700/50 bg-rose-950/40 p-3 text-sm text-rose-200">{error}</div>}
           {notice && <div className="rounded-xl border border-emerald-700/50 bg-emerald-950/30 p-3 text-sm text-emerald-200">{notice}</div>}
