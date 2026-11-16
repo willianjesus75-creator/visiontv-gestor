@@ -10,7 +10,7 @@ import {
 
 type Company = { id: string; nome: string; tipo?: string | null };
 type Client = {
-  id: string; empresa_id: string; nome: string;
+  id: string; empresa_id: string; nome: string; indicacao: string | null;
   mac: string | null; aplicativo: string | null; observacoes: string | null;
   app_vencimento: string | null; status: string;
 };
@@ -54,7 +54,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [search, setSearch] = useState("");
-  const [clientForm, setClientForm] = useState({ nome: "", mac: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+  const [clientForm, setClientForm] = useState({ nome: "", indicacao: "", mac: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
   const [paymentForm, setPaymentForm] = useState({ cliente_id: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
   const [showClientForm, setShowClientForm] = useState(false);
@@ -92,7 +92,7 @@ export default function Home() {
     setError("");
     const [c, cl, p, e, s] = await Promise.all([
       supabase.from("empresas").select("id,nome,tipo").order("nome"),
-      supabase.from("clientes").select("id,empresa_id,nome,mac,aplicativo,observacoes,app_vencimento,status").order("nome"),
+      supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,aplicativo,observacoes,app_vencimento,status").order("nome"),
       supabase.from("pagamentos").select("id,empresa_id,cliente_id,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").order("created_at", { ascending: false }),
       supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").order("created_at", { ascending: false }),
       supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status,cobranca_status,recebido_em").order("data_vencimento")
@@ -141,9 +141,9 @@ export default function Home() {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
     setBusy(true); setError(""); setNotice("");
-    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), mac: clientForm.mac || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, status: clientForm.status };
+    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, status: clientForm.status };
     const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
-    const { data, error } = await request.select("id,empresa_id,nome,mac,aplicativo,observacoes,app_vencimento,status").single();
+    const { data, error } = await request.select("id,empresa_id,nome,indicacao,mac,aplicativo,observacoes,app_vencimento,status").single();
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
@@ -161,7 +161,7 @@ export default function Home() {
         if (subError) setError("Cliente salvo, mas a assinatura não foi atualizada: " + subError.message);
       }
       setClients((old) => [data as Client, ...old]);
-      setClientForm({ nome: "", mac: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+      setClientForm({ nome: "", indicacao: "", mac: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
       setShowClientForm(false); setEditingClient(null); setNotice(editingClient ? "Cliente atualizado." : "Cliente cadastrado.");
       await loadData();
     }
@@ -204,7 +204,7 @@ export default function Home() {
   function editClient(client: Client) {
     const sub = subscriptions.find(x => x.cliente_id === client.id);
     setEditingClient(client.id);
-    setClientForm({nome:client.nome,mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",app_vencimento:client.app_vencimento??"",status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
+    setClientForm({nome:client.nome,indicacao:client.indicacao??"",mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",app_vencimento:client.app_vencimento??"",status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
     setShowClientForm(true);
   }
   async function renewClient(client: Client) {
@@ -334,7 +334,7 @@ export default function Home() {
                 <div className="relative min-w-0 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente por nome ou MAC" className={inputClass+" pl-9"}/></div>
                 <div className="flex gap-2">
                   <button type="button" onClick={()=>setShowFilters(v=>!v)} aria-expanded={showFilters} className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${showFilters?"border-rose-500 bg-[#ed1c35]/15 text-rose-200":"border-line text-slate-200 hover:bg-[#171717]"}`}><SlidersHorizontal size={17}/> Filtros <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-xs">{[statusFilter!=="todos",appFilter!=="todos",planFilter!=="todos",!!dueFrom,!!dueTo].filter(Boolean).length}</span></button>
-                  <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",mac:"",aplicativo:"",observacoes:"",app_vencimento:"",status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-[#ed1c35] px-5 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
+                  <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",indicacao:"",mac:"",aplicativo:"",observacoes:"",app_vencimento:"",status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-[#ed1c35] px-5 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
                 </div>
               </div>
               {showFilters && <div className="space-y-3 border-t border-line pt-3">
@@ -342,7 +342,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
                   <label className="block space-y-1.5 text-xs text-muted">Status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="sem_assinatura">Sem assinatura</option></select></label>
                   <label className="block space-y-1.5 text-xs text-muted">Aplicativo<select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.filter(c=>c.empresa_id===companyId).map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select></label>
-                  <label className="block space-y-1.5 text-xs text-muted">Periodicidade<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todas</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
+                  <label className="block space-y-1.5 text-xs text-muted">Período<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todas</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
                   <label className="block space-y-1.5 text-xs text-muted">Vencimento a partir de<input type="date" value={dueFrom} onChange={e=>setDueFrom(e.target.value)} className={inputClass}/></label>
                   <label className="block space-y-1.5 text-xs text-muted">Vencimento até<input type="date" value={dueTo} min={dueFrom || undefined} onChange={e=>setDueTo(e.target.value)} className={inputClass}/></label>
                 </div>
@@ -350,8 +350,8 @@ export default function Home() {
               <p className="text-xs text-muted">{filteredClients.length} cliente(s) encontrado(s)</p>
             </div>
             {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
-              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Vencimento do aplicativo",<input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
-              {field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/ >)}<div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Periodicidade",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
+              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("Indicação",<input inputMode="numeric" value={clientForm.indicacao} onChange={e=>setClientForm({...clientForm,indicacao:e.target.value.replace(/[^0-9]/g,"")})} placeholder="Número da indicação" className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Vencimento do aplicativo",<input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
+              {field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/ >)}<div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Período",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
               <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form>}
             <div className="overflow-hidden rounded-2xl border border-line bg-panel">
@@ -359,20 +359,19 @@ export default function Home() {
                 <table className="w-full min-w-[1350px] text-left text-sm">
                   <thead className="bg-[#142238] text-xs uppercase text-slate-100">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ajustes do cliente</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Período</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-line align-top hover:bg-[#18304f]/50">
                       <td className="p-4"><div className="font-semibold text-white">{c.nome}</div></td>
-                      
+                      <td className="p-4 font-medium text-slate-200">{c.indicacao||"—"}</td>
                       <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div><div className="mt-1 text-xs text-muted">Venc. aplicativo: {c.app_vencimento?new Date(c.app_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
                       <td className="p-4"><div>{sub?.nome_plano||"Sem plano"}</div><div className="mt-1 text-xs text-muted">{sub?sub.quantidade_telas+" tela(s)":"—"}</div></td>
                       <td className="p-4 font-semibold text-white">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4 capitalize">{sub?.periodicidade||"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
-                      <td className="max-w-[220px] whitespace-normal p-4 text-xs text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4"><div className="flex flex-col gap-2"><button onClick={()=>editClient(c)} className="rounded-lg border border-sky-500/30 px-3 py-1.5 text-sky-300 hover:bg-sky-500/10">Editar</button><button onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-emerald-300 hover:bg-emerald-500/10">Renovar</button><button onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-rose-300 hover:bg-[#ff3048]/10">Excluir</button></div></td>
                     </tr>})}
                     {!filteredClients.length&&<tr><td colSpan={9} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
