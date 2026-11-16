@@ -211,15 +211,11 @@ export default function Home() {
     const sub = subscriptions.find(x => x.cliente_id === client.id);
     if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
     const base = new Date(today() + "T12:00:00");
-    const originalDay = base.getDate();
-    base.setDate(1);
-    base.setMonth(base.getMonth() + (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1));
-    const lastDay = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
-    base.setDate(Math.min(originalDay,lastDay));
+    base.setDate(base.getDate() + 30);
     const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0"); setBusy(true); setError("");
     const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
     if (error) { setError(error.message); setBusy(false); return; }
-    setNotice("Renovação concluída. O vencimento foi recalculado a partir da data de hoje."); await loadData(); setBusy(false);
+    setNotice("Renovação concluída. O próximo vencimento foi definido para 30 dias a partir de hoje."); await loadData(); setBusy(false);
   }
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
@@ -363,7 +359,7 @@ export default function Home() {
                 <table className="w-full min-w-[1350px] text-left text-sm">
                   <thead className="bg-[#142238] text-xs uppercase text-slate-100">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ajustes do cliente</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -379,7 +375,7 @@ export default function Home() {
                       <td className="max-w-[220px] whitespace-normal p-4 text-xs text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4"><div className="flex flex-col gap-2"><button onClick={()=>editClient(c)} className="rounded-lg border border-sky-500/30 px-3 py-1.5 text-sky-300 hover:bg-sky-500/10">Editar</button><button onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-emerald-300 hover:bg-emerald-500/10">Renovar</button><button onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-rose-300 hover:bg-[#ff3048]/10">Excluir</button></div></td>
                     </tr>})}
-                    {!filteredClients.length&&<tr><td colSpan={10} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
+                    {!filteredClients.length&&<tr><td colSpan={9} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
                   </tbody>
                 </table>
               </div>
