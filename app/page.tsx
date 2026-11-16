@@ -330,10 +330,10 @@ export default function Home() {
         <div className="mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-24 w-full object-contain" /><p className="mt-1 text-center text-xs tracking-widest text-muted">GESTOR</p></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
         <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}</nav>
-        <div className="absolute bottom-5 left-5 right-5 text-xs text-muted">Acesso privado • VisionTV Gestor</div>
+        <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-3"><div className="truncate text-xs text-slate-400">{user.email}</div><button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm text-slate-300 hover:bg-[#171717]"><LogOut size={16}/> Sair</button><div className="border-t border-line pt-3 text-xs text-muted">Acesso privado • VisionTV Gestor</div></div>
       </aside>
       <section className="min-w-0 flex-1 md:ml-64">
-        <div className="flex justify-end px-4 pt-3 md:px-8"><div className="flex items-center gap-2"><span className="hidden max-w-48 truncate text-xs text-muted sm:block">{user.email}</span><button onClick={signOut} className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm text-slate-300"><LogOut size={16}/><span className="hidden sm:inline">Sair</span></button></div></div>
+        
         <div className="space-y-6 p-4 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">{tab!=="financeiro" && <><h2 className="text-2xl font-bold">{tab==="inicio"?"Visão geral":"Gestão de clientes"}</h2><p className="mt-1 text-sm text-muted">Dados sincronizados com sua conta na nuvem.</p></>}</div>
