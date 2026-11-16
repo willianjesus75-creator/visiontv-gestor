@@ -3,11 +3,11 @@ const config: Config = {
   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: { extend: {
     colors: {
-      ink: "#090d16",
-      panel: "#111827",
-      line: "#263244",
-      muted: "#91a0b7",
-      accent: "#e11d48"
+      ink: "#070b14",
+      panel: "#101d33",
+      line: "#294363",
+      muted: "#a6b8d0",
+      accent: "#ed1c35"
     }
   }},
   plugins: []
