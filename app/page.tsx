@@ -34,6 +34,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -65,9 +68,10 @@ export default function Home() {
       setUser(u ? { id: u.id, email: u.email ?? "" } : null);
       setLoading(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user;
       setUser(u ? { id: u.id, email: u.email ?? "" } : null);
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
     });
     return () => { alive = false; listener.subscription.unsubscribe(); };
   }, []);
@@ -101,6 +105,17 @@ export default function Home() {
     setBusy(false);
   }
   async function signOut() { await supabase.auth.signOut(); setUser(null); }
+
+  async function updatePassword(event: React.FormEvent) {
+    event.preventDefault(); setError(""); setNotice("");
+    if (newPassword.length < 8) { setError("A nova senha precisa ter pelo menos 8 caracteres."); return; }
+    if (newPassword !== confirmPassword) { setError("As senhas não coincidem."); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) setError("Não foi possível alterar a senha: " + error.message);
+    else { setRecoveryMode(false); setNewPassword(""); setConfirmPassword(""); setNotice("Senha alterada com sucesso."); }
+    setBusy(false);
+  }
 
   async function addCompany(event: React.FormEvent) {
     event.preventDefault();
@@ -196,6 +211,21 @@ export default function Home() {
   const upcoming = subscriptions.filter((s) => clients.some((c) => c.id === s.cliente_id && c.empresa_id === companyId) && s.status === "ativa").sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento)).slice(0, 6);
 
   if (loading) return <main className="min-h-screen grid place-items-center text-slate-400">Carregando VisionTV Gestor...</main>;
+  if (recoveryMode) return (
+    <main className="min-h-screen flex items-center justify-center p-5">
+      <section className="w-full max-w-md rounded-3xl border border-line bg-panel p-8 shadow-2xl">
+        <div className="mb-6 flex items-center gap-3"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600"><Activity size={25}/></div><div><h1 className="text-2xl font-bold">VisionTV Gestor</h1><p className="text-sm text-muted">Redefinição de senha</p></div></div>
+        <h2 className="mb-2 text-xl font-semibold">Crie uma nova senha</h2>
+        <form onSubmit={updatePassword} className="space-y-4">
+          <label className="block text-sm text-slate-300">Nova senha<input value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} type="password" minLength={8} required autoComplete="new-password" className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3"/></label>
+          <label className="block text-sm text-slate-300">Confirme a nova senha<input value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} type="password" minLength={8} required autoComplete="new-password" className="mt-2 w-full rounded-xl border border-line bg-ink px-4 py-3"/></label>
+          {error && <p className="rounded-xl bg-rose-950/60 p-3 text-sm text-rose-300">{error}</p>}
+          {notice && <p className="rounded-xl bg-emerald-950/50 p-3 text-sm text-emerald-300">{notice}</p>}
+          <button disabled={busy} className="w-full rounded-xl bg-rose-600 px-4 py-3 font-semibold disabled:opacity-60">{busy ? "Salvando..." : "Salvar nova senha"}</button>
+        </form>
+      </section>
+    </main>
+  );
   if (!user) return (
     <main className="min-h-screen flex items-center justify-center p-5">
       <section className="w-full max-w-md rounded-3xl border border-line bg-panel p-8 shadow-2xl">
