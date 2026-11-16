@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import {
   Activity, Building2, CalendarDays, CreditCard, LayoutDashboard,
   LogOut, Menu, Plus, RefreshCw, Search, Trash2, Users, Wallet,
-  X, ArrowDownCircle, ArrowUpCircle
+  X, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal
 } from "lucide-react";
 
 type Company = { id: string; nome: string; tipo?: string | null };
@@ -63,6 +63,7 @@ export default function Home() {
   const [planFilter, setPlanFilter] = useState("todos");
   const [dueFrom, setDueFrom] = useState("");
   const [dueTo, setDueTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showCompanyForm, setShowCompanyForm] = useState(false);
@@ -333,16 +334,21 @@ export default function Home() {
             <div className="flex flex-col gap-3 rounded-2xl border border-line bg-panel p-4 md:p-5">
               <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative min-w-0 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente por nome, WhatsApp ou MAC" className={inputClass+" pl-9"}/></div>
-                <button onClick={()=>{setEditingClient(null);setShowClientForm(!showClientForm)}} disabled={!companyId} className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={()=>setShowFilters(v=>!v)} aria-expanded={showFilters} className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${showFilters?"border-rose-500 bg-rose-600/15 text-rose-200":"border-line text-slate-200 hover:bg-slate-800"}`}><SlidersHorizontal size={17}/> Filtros <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-xs">{[statusFilter!=="todos",appFilter!=="todos",planFilter!=="todos",!!dueFrom,!!dueTo].filter(Boolean).length}</span></button>
+                  <button onClick={()=>{setEditingClient(null);setShowClientForm(!showClientForm)}} disabled={!companyId} className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3"><p className="text-xs font-semibold uppercase tracking-wider text-muted">Filtros de clientes</p><button type="button" onClick={()=>{setStatusFilter("todos");setAppFilter("todos");setPlanFilter("todos");setDueFrom("");setDueTo("");setSearch("");}} className="text-xs font-semibold text-rose-300 hover:text-rose-200">Limpar filtros</button></div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <label className="block space-y-1.5 text-xs text-muted">Status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="sem_assinatura">Sem assinatura</option></select></label>
-                <label className="block space-y-1.5 text-xs text-muted">Aplicativo<select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.filter(c=>c.empresa_id===companyId).map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select></label>
-                <label className="block space-y-1.5 text-xs text-muted">Periodicidade<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todas</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
-                <label className="block space-y-1.5 text-xs text-muted">Vencimento a partir de<input type="date" value={dueFrom} onChange={e=>setDueFrom(e.target.value)} className={inputClass}/></label>
-                <label className="block space-y-1.5 text-xs text-muted">Vencimento até<input type="date" value={dueTo} min={dueFrom || undefined} onChange={e=>setDueTo(e.target.value)} className={inputClass}/></label>
-              </div>
+              {showFilters && <div className="space-y-3 border-t border-line pt-3">
+                <div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wider text-muted">Filtrar clientes</p><button type="button" onClick={()=>{setStatusFilter("todos");setAppFilter("todos");setPlanFilter("todos");setDueFrom("");setDueTo("");}} className="text-xs font-semibold text-rose-300 hover:text-rose-200">Limpar filtros</button></div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                  <label className="block space-y-1.5 text-xs text-muted">Status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="sem_assinatura">Sem assinatura</option></select></label>
+                  <label className="block space-y-1.5 text-xs text-muted">Aplicativo<select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.filter(c=>c.empresa_id===companyId).map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select></label>
+                  <label className="block space-y-1.5 text-xs text-muted">Periodicidade<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todas</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
+                  <label className="block space-y-1.5 text-xs text-muted">Vencimento a partir de<input type="date" value={dueFrom} onChange={e=>setDueFrom(e.target.value)} className={inputClass}/></label>
+                  <label className="block space-y-1.5 text-xs text-muted">Vencimento até<input type="date" value={dueTo} min={dueFrom || undefined} onChange={e=>setDueTo(e.target.value)} className={inputClass}/></label>
+                </div>
+              </div>}
               <p className="text-xs text-muted">{filteredClients.length} cliente(s) encontrado(s)</p>
             </div>
             {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
