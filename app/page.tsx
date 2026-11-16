@@ -57,6 +57,10 @@ export default function Home() {
   const [paymentForm, setPaymentForm] = useState({ cliente_id: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
   const [showClientForm, setShowClientForm] = useState(false);
+  const [editingClient, setEditingClient] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [appFilter, setAppFilter] = useState("todos");
+  const [planFilter, setPlanFilter] = useState("todos");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showCompanyForm, setShowCompanyForm] = useState(false);
@@ -133,12 +137,9 @@ export default function Home() {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
     setBusy(true); setError(""); setNotice("");
-    const { data, error } = await supabase.from("clientes").insert({
-      owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(),
-      whatsapp: clientForm.whatsapp || null, mac: clientForm.mac || null,
-      aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null,
-      data_contratacao: clientForm.data_contratacao || null, status: clientForm.status
-    }).select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,data_contratacao,status").single();
+    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), whatsapp: clientForm.whatsapp || null, mac: clientForm.mac || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, data_contratacao: clientForm.data_contratacao || null, status: clientForm.status };
+    const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
+    const { data, error } = await request.select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,data_contratacao,status").single();
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
@@ -153,7 +154,7 @@ export default function Home() {
       }
       setClients((old) => [data as Client, ...old]);
       setClientForm({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
-      setShowClientForm(false); setNotice("Cliente cadastrado.");
+      setShowClientForm(false); setEditingClient(null); setNotice(editingClient ? "Cliente atualizado." : "Cliente cadastrado.");
       await loadData();
     }
     setBusy(false);
@@ -192,6 +193,24 @@ export default function Home() {
     setBusy(false);
   }
 
+  function editClient(client: Client) {
+    const sub = subscriptions.find(x => x.cliente_id === client.id);
+    setEditingClient(client.id);
+    setClientForm({nome:client.nome,whatsapp:client.whatsapp??"",mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",data_contratacao:client.data_contratacao??today(),status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
+    setShowClientForm(true);
+  }
+  async function renewClient(client: Client) {
+    const sub = subscriptions.find(x => x.cliente_id === client.id);
+    if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
+    const paid = window.confirm("O cliente já pagou " + money(sub.valor) + "? OK = sim; Cancelar = não.");
+    const base = new Date((sub.data_vencimento < today() ? today() : sub.data_vencimento) + "T12:00:00");
+    base.setMonth(base.getMonth() + (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1));
+    const due = base.toISOString().slice(0,10); setBusy(true); setError("");
+    const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
+    if (error) { setError(error.message); setBusy(false); return; }
+    if (paid) { const { error: paymentError } = await supabase.from("pagamentos").insert({owner_id:user?.id,empresa_id:client.empresa_id,cliente_id:client.id,valor:sub.valor,descricao:"Renovação - "+client.nome,data_vencimento:due,data_pagamento:today(),forma_pagamento:"pix",status:"pago"}); if (paymentError) setError("Vencimento atualizado, mas o recebimento falhou: "+paymentError.message); }
+    setNotice(paid ? "Renovação e recebimento registrados." : "Renovação registrada sem lançar pagamento."); await loadData(); setBusy(false);
+  }
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
     const { error } = await supabase.from("clientes").delete().eq("id", client.id);
@@ -204,7 +223,12 @@ export default function Home() {
     else { if (table === "pagamentos") setPayments((old) => old.filter((x) => x.id !== id)); else setExpenses((old) => old.filter((x) => x.id !== id)); setNotice("Lançamento excluído."); }
   }
 
-  const filteredClients = useMemo(() => clients.filter((c) => c.empresa_id === companyId && (c.nome.toLowerCase().includes(search.toLowerCase()) || (c.whatsapp ?? "").includes(search) || (c.mac ?? "").toLowerCase().includes(search.toLowerCase()))), [clients, companyId, search]);
+  const filteredClients = useMemo(() => clients.filter((c) => {
+    const sub = subscriptions.find(x => x.cliente_id === c.id);
+    const days = sub ? Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null;
+    const status = days === null ? "sem_assinatura" : days < 0 ? "vencido" : days === 0 ? "hoje" : days <= 7 ? "proximo" : "ativo";
+    return c.empresa_id === companyId && (c.nome.toLowerCase().includes(search.toLowerCase()) || (c.whatsapp ?? "").includes(search) || (c.mac ?? "").toLowerCase().includes(search.toLowerCase())) && (statusFilter === "todos" || status === statusFilter) && (appFilter === "todos" || c.aplicativo === appFilter) && (planFilter === "todos" || sub?.periodicidade === planFilter);
+  }), [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter]);
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
   const received = companyPayments.filter((p) => p.status === "pago").reduce((sum, p) => sum + Number(p.valor), 0);
@@ -289,13 +313,13 @@ export default function Home() {
             </div>
           </>}
           {tab==="clientes" && <>
-            <div className="flex flex-wrap items-center justify-between gap-3"><div className="relative min-w-52 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, WhatsApp ou MAC" className={inputClass+" pl-9"}/></div><button onClick={()=>setShowClientForm(!showClientForm)} disabled={!companyId} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button></div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div className="relative min-w-52 flex-1"><Search size={17} className="absolute left-3 top-3 text-muted"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, WhatsApp ou MAC" className={inputClass+" pl-9"}/></div><button onClick={()=>{setEditingClient(null);setShowClientForm(!showClientForm)}} disabled={!companyId} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button></div><div className="flex flex-wrap gap-2"><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass+" w-auto"}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="sem_assinatura">Sem assinatura</option></select><select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass+" w-auto"}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select><select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass+" w-auto"}><option value="todos">Todas periodicidades</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></div>
             {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
               {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("WhatsApp",<input value={clientForm.whatsapp} onChange={e=>setClientForm({...clientForm,whatsapp:e.target.value})} className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Data de contratação",<input type="date" value={clientForm.data_contratacao} onChange={e=>setClientForm({...clientForm,data_contratacao:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
               {field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/ >)}<div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Periodicidade",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
-              <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
+              <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form>}
-            <div className="overflow-hidden rounded-2xl border border-line bg-panel"><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-muted"><tr><th className="p-4">Cliente</th><th className="p-4">Contato</th><th className="p-4">Assinatura / vencimento</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr></thead><tbody>{filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return <tr key={c.id} className="border-t border-line"><td className="p-4 font-medium">{c.nome}</td><td className="p-4 text-muted">{c.whatsapp||"—"}<span className="block text-xs text-muted">{c.aplicativo||"Sem aplicativo"} · {c.mac||"Sem MAC"}</span></td><td className="p-4">{sub?<><span>{sub.nome_plano}</span><span className="block text-xs text-muted">{new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</span></>:"Sem assinatura"}</td><td className="p-4"><span className={`rounded-full px-2 py-1 text-xs ${c.status==="ativo"?"bg-emerald-950 text-emerald-300":"bg-slate-800 text-slate-300"}`}>{c.status}</span></td><td className="p-4"><button onClick={()=>void deleteClient(c)} className="text-rose-300" title="Excluir cliente"><Trash2 size={16}/></button></td></tr>})}{!filteredClients.length&&<tr><td colSpan={5} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}</tbody></table></div></div>
+            <div className="overflow-hidden rounded-2xl border border-line bg-panel"><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-muted"><tr><th className="p-4">Cliente</th><th className="p-4">Contato</th><th className="p-4">Assinatura / vencimento</th><th className="p-4">Status</th><th className="p-4">Ação</th></tr></thead><tbody>{filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return <tr key={c.id} className="border-t border-line"><td className="p-4 font-medium">{c.nome}</td><td className="p-4 text-muted">{c.whatsapp||"—"}<span className="block text-xs text-muted">{c.aplicativo||"Sem aplicativo"} · {c.mac||"Sem MAC"}</span></td><td className="p-4">{sub?<><span>{sub.nome_plano}</span><span className="block text-xs text-muted">{new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</span></>:"Sem assinatura"}</td><td className="p-4"><span className={`rounded-full px-2 py-1 text-xs ${c.status==="ativo"?"bg-emerald-950 text-emerald-300":"bg-slate-800 text-slate-300"}`}>{c.status}</span></td><td className="p-4"><div className="flex gap-2"><button onClick={()=>editClient(c)} className="text-sky-300">Editar</button><button onClick={()=>void renewClient(c)} disabled={busy} className="text-emerald-300">Renovar</button><button onClick={()=>void deleteClient(c)} className="text-rose-300" title="Excluir cliente"><Trash2 size={16}/></button></div></td></tr>})}{!filteredClients.length&&<tr><td colSpan={5} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}</tbody></table></div></div>
           </>}
           {tab==="financeiro" && <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{label:"Recebido",value:money(received)},{label:"Despesas pagas",value:money(spent)},{label:"A receber",value:money(pendingPayments)},{label:"A pagar",value:money(pendingExpenses)}].map(x=><article key={x.label} className="rounded-2xl border border-line bg-panel p-5"><p className="text-sm text-muted">{x.label}</p><p className="mt-3 text-xl font-bold">{x.value}</p></article>)}</div>
