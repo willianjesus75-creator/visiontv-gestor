@@ -12,7 +12,7 @@ type Company = { id: string; nome: string; tipo?: string | null };
 type Client = {
   id: string; empresa_id: string; nome: string; whatsapp: string | null;
   mac: string | null; aplicativo: string | null; observacoes: string | null;
-  data_contratacao: string | null; status: string;
+  app_vencimento: string | null; status: string;
 };
 type Payment = {
   id: string; empresa_id: string; cliente_id: string | null; valor: number;
@@ -53,7 +53,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [search, setSearch] = useState("");
-  const [clientForm, setClientForm] = useState({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+  const [clientForm, setClientForm] = useState({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
   const [paymentForm, setPaymentForm] = useState({ cliente_id: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
   const [showClientForm, setShowClientForm] = useState(false);
@@ -91,7 +91,7 @@ export default function Home() {
     setError("");
     const [c, cl, p, e, s] = await Promise.all([
       supabase.from("empresas").select("id,nome,tipo").order("nome"),
-      supabase.from("clientes").select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,data_contratacao,status").order("nome"),
+      supabase.from("clientes").select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,app_vencimento,status").order("nome"),
       supabase.from("pagamentos").select("id,empresa_id,cliente_id,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").order("created_at", { ascending: false }),
       supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").order("created_at", { ascending: false }),
       supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status").order("data_vencimento")
@@ -140,9 +140,9 @@ export default function Home() {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
     setBusy(true); setError(""); setNotice("");
-    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), whatsapp: clientForm.whatsapp || null, mac: clientForm.mac || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, data_contratacao: clientForm.data_contratacao || null, status: clientForm.status };
+    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), whatsapp: clientForm.whatsapp || null, mac: clientForm.mac || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, status: clientForm.status };
     const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
-    const { data, error } = await request.select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,data_contratacao,status").single();
+    const { data, error } = await request.select("id,empresa_id,nome,whatsapp,mac,aplicativo,observacoes,app_vencimento,status").single();
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
@@ -150,7 +150,7 @@ export default function Home() {
           owner_id: user.id, empresa_id: companyId, cliente_id: data.id,
           nome_plano: clientForm.plano, quantidade_telas: Number(clientForm.telas),
           valor: Number(clientForm.valor), periodicidade: clientForm.periodicidade,
-          data_inicio: clientForm.data_contratacao || today(), data_vencimento: clientForm.vencimento,
+          data_inicio: today(), data_vencimento: clientForm.vencimento,
           status: "ativa"
         };
         const currentSub = subscriptions.find(x => x.cliente_id === data.id);
@@ -160,7 +160,7 @@ export default function Home() {
         if (subError) setError("Cliente salvo, mas a assinatura não foi atualizada: " + subError.message);
       }
       setClients((old) => [data as Client, ...old]);
-      setClientForm({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", data_contratacao: today(), status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+      setClientForm({ nome: "", whatsapp: "", mac: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
       setShowClientForm(false); setEditingClient(null); setNotice(editingClient ? "Cliente atualizado." : "Cliente cadastrado.");
       await loadData();
     }
@@ -203,7 +203,7 @@ export default function Home() {
   function editClient(client: Client) {
     const sub = subscriptions.find(x => x.cliente_id === client.id);
     setEditingClient(client.id);
-    setClientForm({nome:client.nome,whatsapp:client.whatsapp??"",mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",data_contratacao:client.data_contratacao??today(),status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
+    setClientForm({nome:client.nome,whatsapp:client.whatsapp??"",mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",app_vencimento:client.app_vencimento??"",status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
     setShowClientForm(true);
   }
   async function renewClient(client: Client) {
@@ -352,7 +352,7 @@ export default function Home() {
               <p className="text-xs text-muted">{filteredClients.length} cliente(s) encontrado(s)</p>
             </div>
             {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
-              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("WhatsApp",<input value={clientForm.whatsapp} onChange={e=>setClientForm({...clientForm,whatsapp:e.target.value})} className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Data de contratação",<input type="date" value={clientForm.data_contratacao} onChange={e=>setClientForm({...clientForm,data_contratacao:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
+              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("WhatsApp",<input value={clientForm.whatsapp} onChange={e=>setClientForm({...clientForm,whatsapp:e.target.value})} className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Vencimento do aplicativo",<input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
               {field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/ >)}<div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de telas",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Periodicidade",<select value={clientForm.periodicidade} onChange={e=>setClientForm({...clientForm,periodicidade:e.target.value})} className={inputClass}><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
               <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form>}
@@ -361,14 +361,14 @@ export default function Home() {
                 <table className="w-full min-w-[1350px] text-left text-sm">
                   <thead className="bg-slate-900/70 text-xs uppercase text-muted">
                     <tr>
-                      <th className="p-4">Cliente / contratação</th><th className="p-4">Aplicativo / MAC</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-line align-top hover:bg-slate-900/30">
-                      <td className="p-4"><div className="font-semibold text-white">{c.nome}</div><div className="mt-1 text-xs text-muted">Contratação: {c.data_contratacao?new Date(c.data_contratacao+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
+                      <td className="p-4"><div className="font-semibold text-white">{c.nome}</div></td>
                       
-                      <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div></td>
+                      <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div><div className="mt-1 text-xs text-muted">Venc. aplicativo: {c.app_vencimento?new Date(c.app_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
                       <td className="p-4"><div>{sub?.nome_plano||"Sem plano"}</div><div className="mt-1 text-xs text-muted">{sub?sub.quantidade_telas+" tela(s)":"—"}</div></td>
                       <td className="p-4 font-semibold text-white">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4 capitalize">{sub?.periodicidade||"—"}</td>
