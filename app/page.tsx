@@ -207,47 +207,19 @@ export default function Home() {
     setClientForm({nome:client.nome,mac:client.mac??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",app_vencimento:client.app_vencimento??"",status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
     setShowClientForm(true);
   }
-  async function setSubscriptionBilling(sub: Subscription) {
-    const nextStatus = sub.cobranca_status === "recebido" ? "em_aberto" : "recebido";
-    setBusy(true); setError(""); setNotice("");
-
-    // Ao confirmar o recebimento, reinicia o ciclo por 30 dias a partir de hoje.
-    // Usa a data local do navegador para evitar diferença de fuso horário.
-    const now = new Date();
-    const localToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const nextDueDate = new Date(localToday);
-    nextDueDate.setDate(nextDueDate.getDate() + 30);
-    const dateString = (date: Date) =>
-      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-    const updates = nextStatus === "recebido"
-      ? { cobranca_status: nextStatus, recebido_em: dateString(localToday), data_vencimento: dateString(nextDueDate) }
-      : { cobranca_status: nextStatus, recebido_em: null };
-
-    const { error } = await supabase.from("assinaturas").update(updates).eq("id", sub.id);
-    if (error) setError("Não foi possível atualizar a cobrança: " + error.message);
-    else {
-      setNotice(nextStatus === "recebido"
-        ? "Pagamento confirmado. O próximo vencimento foi atualizado para 30 dias a partir de hoje."
-        : "Cobrança voltou para em aberto. A data de vencimento permanece como está.");
-      await loadData();
-    }
-    setBusy(false);
-  }
-
   async function renewClient(client: Client) {
     const sub = subscriptions.find(x => x.cliente_id === client.id);
     if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
-    const base = new Date((sub.data_vencimento < today() ? today() : sub.data_vencimento) + "T12:00:00");
+    const base = new Date(today() + "T12:00:00");
     const originalDay = base.getDate();
     base.setDate(1);
     base.setMonth(base.getMonth() + (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1));
     const lastDay = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
     base.setDate(Math.min(originalDay,lastDay));
     const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0"); setBusy(true); setError("");
-    const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa",cobranca_status:"em_aberto",recebido_em:null}).eq("id",sub.id);
+    const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
     if (error) { setError(error.message); setBusy(false); return; }
-    setNotice("Vencimento do cliente atualizado. Se houve pagamento, registre-o separadamente na aba Financeiro."); await loadData(); setBusy(false);
+    setNotice("Renovação concluída. O vencimento foi recalculado a partir da data de hoje."); await loadData(); setBusy(false);
   }
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
@@ -276,7 +248,6 @@ export default function Home() {
   }), [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter, dueFrom, dueTo]);
   const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
   const monthlyRegistered = clientSubscriptions.reduce((sum, sub) => sum + Number(sub.valor || 0) / (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1), 0);
-  const clientReceived = clientSubscriptions.filter(sub => sub.cobranca_status === "recebido").reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
   const clientOpen = clientSubscriptions.filter(sub => sub.cobranca_status !== "recebido").reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
@@ -351,13 +322,13 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
               {[
                 {label:"Clientes cadastrados",value:clients.filter(c=>c.empresa_id===companyId).length,detail:"Base de clientes",icon:Users,accent:"from-rose-500/20 to-rose-500/5"},
-                {label:"Valor Total Recebido",value:money(clientReceived),detail:"Total marcado como recebido pelos clientes",icon:CreditCard,accent:"from-sky-500/20 to-sky-500/5"},
+                {label:"Valor em aberto",value:money(clientOpen),detail:"Total pendente de recebimento dos clientes",icon:CreditCard,accent:"from-sky-500/20 to-sky-500/5",valueClass:"text-emerald-300"},
                 {label:"Clientes ativos",value:clientSubscriptions.filter(sub=>sub.data_vencimento>=today() && sub.status==="ativa").length,detail:"Assinaturas dentro do prazo",icon:Activity,accent:"from-emerald-500/20 to-emerald-500/5"},
                 {label:"Clientes vencidos",value:clientSubscriptions.filter(sub=>sub.data_vencimento<today()).length,detail:"Precisam de atenção",icon:CalendarDays,accent:"from-amber-500/20 to-amber-500/5"}
-              ].map(({label,value,detail,icon:Icon,accent})=><article key={label} className="group relative isolate overflow-hidden rounded-2xl border border-[#26364d] bg-gradient-to-br from-[#142238] via-[#0d1727] to-[#080d16] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:border-[#ed1c35]/60 hover:shadow-[0_16px_40px_rgba(237,28,53,0.10)]"><div className={`pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br ${accent} opacity-80`}/><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-slate-300">{label}</p><p className="mt-3 text-3xl font-bold tracking-tight text-white">{value}</p></div><span className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-black/20 text-rose-300 shadow-inner"><Icon size={20}/></span></div><div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-3"><span className="h-1.5 w-1.5 rounded-full bg-[#ed1c35]"/><p className="text-xs text-slate-400">{detail}</p></div></article>)}
+              ].map(({label,value,detail,icon:Icon,accent,valueClass})=><article key={label} className="group relative isolate overflow-hidden rounded-2xl border border-[#26364d] bg-gradient-to-br from-[#142238] via-[#0d1727] to-[#080d16] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.22)] transition duration-200 hover:-translate-y-1 hover:border-[#ed1c35]/60 hover:shadow-[0_16px_40px_rgba(237,28,53,0.10)]"><div className={`pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br ${accent} opacity-80`}/><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-slate-300">{label}</p><p className={`mt-3 text-3xl font-bold tracking-tight ${valueClass || (label==="Clientes ativos" ? "text-emerald-300" : label==="Clientes vencidos" ? "text-rose-400" : "text-white")}`}>{value}</p></div><span className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-black/20 text-rose-300 shadow-inner"><Icon size={20}/></span></div><div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-3"><span className="h-1.5 w-1.5 rounded-full bg-[#ed1c35]"/><p className="text-xs text-slate-400">{detail}</p></div></article>)}
             </div>
             <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-              <article className="overflow-hidden rounded-2xl border border-[#26364d] bg-gradient-to-br from-[#142238] to-[#0a111d] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.18)]"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ed1c35]/15 text-rose-300"><CreditCard size={19}/></span><div><h3 className="font-semibold text-white">Resumo dos clientes</h3><p className="text-xs text-slate-400">Indicadores da carteira</p></div></div><div className="mt-5 space-y-4"><div className="flex items-center justify-between gap-3"><span className="text-sm text-slate-400">Valor recebido</span><b className="text-lg text-emerald-300">{money(clientReceived)}</b></div><div className="h-px bg-white/10"/><div className="flex items-center justify-between gap-3"><span className="text-sm text-slate-400">Valor em aberto</span><b className="text-lg text-amber-300">{money(clientOpen)}</b></div><p className="text-xs text-slate-500">Controle separado do Financeiro.</p></div></article>
+              <article className="overflow-hidden rounded-2xl border border-[#26364d] bg-gradient-to-br from-[#142238] to-[#0a111d] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.18)]"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ed1c35]/15 text-rose-300"><CreditCard size={19}/></span><div><h3 className="font-semibold text-white">Resumo dos clientes</h3><p className="text-xs text-slate-400">Indicadores da carteira</p></div></div><div className="mt-5 space-y-4"><div className="flex items-center justify-between gap-3"><span className="text-sm text-slate-400">Valor em aberto</span><b className="text-2xl font-bold text-emerald-300">{money(clientOpen)}</b></div><p className="text-xs text-slate-500">Total pendente dos clientes. Controle separado do Financeiro.</p></div></article>
               <article className="overflow-hidden rounded-2xl border border-[#26364d] bg-gradient-to-br from-[#142238] to-[#0a111d] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.18)]"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ed1c35]/15 text-rose-300"><CalendarDays size={19}/></span><div><h3 className="font-semibold text-white">Próximos vencimentos</h3><p className="text-xs text-slate-400">Acompanhe as próximas renovações</p></div></div>{upcoming.length ? <div className="mt-4 divide-y divide-white/10">{upcoming.map(s=><div key={s.id} className="flex items-center justify-between gap-3 py-3 text-sm"><div className="min-w-0"><p className="truncate font-medium text-slate-200">{clients.find(c=>c.id===s.cliente_id)?.nome ?? "Cliente"}</p><p className="mt-0.5 text-xs text-slate-400">{s.nome_plano} · {money(s.valor)}</p></div><span className="shrink-0 rounded-lg border border-[#ed1c35]/25 bg-[#ed1c35]/10 px-2.5 py-1.5 text-xs font-semibold text-rose-200">{new Date(s.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR")}</span></div>)}</div> : <p className="mt-5 rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-slate-400">Nenhuma assinatura ativa encontrada para esta empresa.</p>}</article>
             </div>
           </>}
@@ -392,7 +363,7 @@ export default function Home() {
                 <table className="w-full min-w-[1350px] text-left text-sm">
                   <thead className="bg-[#142238] text-xs uppercase text-slate-100">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Cobrança</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Aplicativo / MAC / vencimento do app</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -405,7 +376,6 @@ export default function Home() {
                       <td className="p-4 capitalize">{sub?.periodicidade||"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
-                      <td className="p-4">{sub?<button disabled={busy} onClick={()=>void setSubscriptionBilling(sub)} className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${sub.cobranca_status==="recebido"?"border-emerald-500/30 bg-emerald-500/10 text-emerald-300":"border-amber-500/30 bg-amber-500/10 text-amber-200"}`}>{sub.cobranca_status==="recebido"?"Recebido · desfazer":"Marcar recebido"}</button>:"—"}</td>
                       <td className="max-w-[220px] whitespace-normal p-4 text-xs text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4"><div className="flex flex-col gap-2"><button onClick={()=>editClient(c)} className="rounded-lg border border-sky-500/30 px-3 py-1.5 text-sky-300 hover:bg-sky-500/10">Editar</button><button onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-emerald-300 hover:bg-emerald-500/10">Renovar</button><button onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-rose-300 hover:bg-[#ff3048]/10">Excluir</button></div></td>
                     </tr>})}
