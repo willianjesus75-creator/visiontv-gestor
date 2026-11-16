@@ -12,7 +12,7 @@ type Company = { id: string; nome: string; tipo?: string | null };
 type Client = {
   id: string; empresa_id: string; nome: string; indicacao: string | null;
   mac: string | null; servidor: string | null; aplicativo: string | null; observacoes: string | null;
-  app_vencimento: string | null; status: string;
+  app_vencimento: string | null; app_vencimento2: string | null; status: string;
 };
 type Payment = {
   id: string; empresa_id: string; cliente_id: string | null; categoria: string | null; valor: number;
@@ -55,7 +55,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [search, setSearch] = useState("");
-  const [clientForm, setClientForm] = useState({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+  const [clientForm, setClientForm] = useState({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", observacoes: "", app_vencimento: "", app_vencimento2: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
   const [paymentForm, setPaymentForm] = useState({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
   const [showClientForm, setShowClientForm] = useState(false);
@@ -118,7 +118,7 @@ export default function Home() {
     setError("");
     const [c, cl, p, e, s] = await Promise.all([
       supabase.from("empresas").select("id,nome,tipo").order("nome"),
-      supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,status").order("nome"),
+      supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,app_vencimento2,status").order("nome"),
       supabase.from("pagamentos").select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").order("created_at", { ascending: false }),
       supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").order("created_at", { ascending: false }),
       supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status,cobranca_status,recebido_em").order("data_vencimento")
@@ -191,7 +191,7 @@ export default function Home() {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
     setBusy(true); setError(""); setNotice("");
-    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, servidor: clientForm.servidor || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, status: clientForm.status };
+    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, servidor: clientForm.servidor || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, app_vencimento2: clientForm.app_vencimento2 || null, status: clientForm.status };
     const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
     const { data, error } = await request.select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,status").single();
     if (error) setError(error.message);
@@ -211,7 +211,7 @@ export default function Home() {
         if (subError) setError("Cliente salvo, mas a assinatura não foi atualizada: " + subError.message);
       }
       setClients((old) => [data as Client, ...old]);
-      setClientForm({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", observacoes: "", app_vencimento: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
+      setClientForm({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", observacoes: "", app_vencimento: "", app_vencimento2: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
       setShowClientForm(false); setEditingClient(null); setNotice(editingClient ? "Cliente atualizado." : "Cliente cadastrado.");
       await loadData();
     }
@@ -261,7 +261,7 @@ export default function Home() {
   function editClient(client: Client) {
     const sub = subscriptions.find(x => x.cliente_id === client.id);
     setEditingClient(client.id);
-    setClientForm({nome:client.nome,indicacao:client.indicacao??"",mac:client.mac??"",servidor:client.servidor??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",app_vencimento:client.app_vencimento??"",status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
+    setClientForm({nome:client.nome,indicacao:client.indicacao??"",mac:client.mac??"",servidor:client.servidor??"",aplicativo:client.aplicativo??"",observacoes:client.observacoes??"",app_vencimento:client.app_vencimento??"",app_vencimento2:client.app_vencimento2??"",status:client.status,plano:sub?.nome_plano??"",telas:String(sub?.quantidade_telas??1),valor:sub?String(sub.valor):"",periodicidade:sub?.periodicidade??"mensal",vencimento:sub?.data_vencimento??""});
     setShowClientForm(true);
   }
   async function renewClient(client: Client) {
@@ -443,7 +443,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3"><p className="text-xs text-slate-400">{filteredClients.length} cliente(s) encontrado(s)</p><span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{clients.filter(c=>c.empresa_id===companyId).length} cadastrados</span></div></div>
             </div>
             {showClientForm && <form onSubmit={addClient} className="grid gap-3 rounded-2xl border border-line bg-panel p-5 sm:grid-cols-2">
-              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("Indicação",<input inputMode="numeric" value={clientForm.indicacao} onChange={e=>setClientForm({...clientForm,indicacao:e.target.value.replace(/[^0-9]/g,"")})} placeholder="Número da indicação" className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Servidor",<input value={clientForm.servidor} onChange={e=>setClientForm({...clientForm,servidor:e.target.value})} placeholder="Nome ou endereço do servidor" className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Validade do app",<input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
+              {field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} className={inputClass}/>)}{field("Indicação",<input inputMode="numeric" value={clientForm.indicacao} onChange={e=>setClientForm({...clientForm,indicacao:e.target.value.replace(/[^0-9]/g,"")})} placeholder="Número da indicação" className={inputClass}/>)}{field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}{field("Servidor",<input value={clientForm.servidor} onChange={e=>setClientForm({...clientForm,servidor:e.target.value})} placeholder="Nome ou endereço do servidor" className={inputClass}/>)}{field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}{field("Validade do aplicativo",<div className="grid grid-cols-2 gap-2"><div><span className="mb-1 block text-xs text-muted">Data 1</span><input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/></div><div><span className="mb-1 block text-xs text-muted">Data 2</span><input type="date" value={clientForm.app_vencimento2} onChange={e=>setClientForm({...clientForm,app_vencimento2:e.target.value})} className={inputClass}/></div></div>)}{field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
               {field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/ >)}<div className="sm:col-span-2 border-t border-line pt-3"><p className="mb-3 text-sm font-semibold">Assinatura (opcional)</p><div className="grid gap-3 sm:grid-cols-3">{field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}{field("Quantidade de acessos",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}{field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}{field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}</div></div>
               <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form>}
@@ -452,7 +452,7 @@ export default function Home() {
                 <table className="w-full min-w-[1350px] text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[11px] uppercase tracking-wider text-slate-200">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">Aplicativo / MAC / Validade do app</th><th className="p-4">Valor</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">Aplicativo / MAC / Validade</th><th className="p-4">Valor</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -463,7 +463,7 @@ export default function Home() {
                       <td className="p-4">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="p-4">{sub?sub.quantidade_telas:"—"}</td>
                       <td className="p-4">{c.servidor||"—"}</td>
-                      <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div><div className="mt-1 text-xs text-muted">{c.app_vencimento?new Date(c.app_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
+                      <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div><div className="mt-1 text-xs text-muted">{c.app_vencimento?new Date(c.app_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}{c.app_vencimento2?<div className="mt-1">{new Date(c.app_vencimento2+"T12:00:00").toLocaleDateString("pt-BR")}</div>:null}</div></td>
                       <td className="p-4 font-bold text-emerald-300">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
