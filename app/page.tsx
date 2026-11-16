@@ -278,10 +278,6 @@ export default function Home() {
   const clientReceived = clientSubscriptions.filter(sub => sub.cobranca_status === "recebido").reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
-  const received = companyPayments.filter((p) => p.status === "pago").reduce((sum, p) => sum + Number(p.valor), 0);
-  const spent = companyExpenses.filter((e) => e.status === "pago").reduce((sum, e) => sum + Number(e.valor), 0);
-  const pendingPayments = companyPayments.filter((p) => p.status !== "pago").reduce((sum, p) => sum + Number(p.valor), 0);
-  const pendingExpenses = companyExpenses.filter((e) => e.status !== "pago").reduce((sum, e) => sum + Number(e.valor), 0);
   const inDateRange = (date: string | null | undefined, from = appliedDateFrom, to = appliedDateTo) => !!date && date >= from && date <= to;
   const periodPayments = companyPayments.filter(p => p.status === "pago" && inDateRange(p.data_pagamento));
   const periodExpenses = companyExpenses.filter(e => e.status === "pago" && inDateRange(e.data_pagamento));
