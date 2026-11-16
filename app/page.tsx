@@ -358,16 +358,16 @@ export default function Home() {
             </form>}
             <div className="overflow-hidden rounded-2xl border border-line bg-panel">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1500px] text-left text-sm">
+                <table className="w-full min-w-[1350px] text-left text-sm">
                   <thead className="bg-slate-900/70 text-xs uppercase text-muted">
                     <tr>
-                      <th className="p-4">Cliente / contratação</th><th className="p-4">Contato</th><th className="p-4">Aplicativo / MAC</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente / contratação</th><th className="p-4">Aplicativo / MAC</th><th className="p-4">Plano / telas</th><th className="p-4">Valor</th><th className="p-4">Periodicidade</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Observações</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-line align-top hover:bg-slate-900/30">
                       <td className="p-4"><div className="font-semibold text-white">{c.nome}</div><div className="mt-1 text-xs text-muted">Contratação: {c.data_contratacao?new Date(c.data_contratacao+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</div></td>
-                      <td className="p-4"><div>{c.whatsapp||"—"}</div><div className="mt-1 text-xs text-muted">WhatsApp</div></td>
+                      
                       <td className="p-4"><div>{c.aplicativo||"—"}</div><div className="mt-1 text-xs text-muted">MAC: {c.mac||"—"}</div></td>
                       <td className="p-4"><div>{sub?.nome_plano||"Sem plano"}</div><div className="mt-1 text-xs text-muted">{sub?sub.quantidade_telas+" tela(s)":"—"}</div></td>
                       <td className="p-4 font-semibold text-white">{sub?money(sub.valor):"—"}</td>
@@ -377,7 +377,7 @@ export default function Home() {
                       <td className="max-w-[220px] whitespace-normal p-4 text-xs text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4"><div className="flex flex-col gap-2"><button onClick={()=>editClient(c)} className="rounded-lg border border-sky-500/30 px-3 py-1.5 text-sky-300 hover:bg-sky-500/10">Editar</button><button onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-emerald-300 hover:bg-emerald-500/10">Renovar</button><button onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-rose-300 hover:bg-rose-500/10">Excluir</button></div></td>
                     </tr>})}
-                    {!filteredClients.length&&<tr><td colSpan={10} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
+                    {!filteredClients.length&&<tr><td colSpan={9} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
                   </tbody>
                 </table>
               </div>
