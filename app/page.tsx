@@ -71,6 +71,8 @@ export default function Home() {
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
   const [financeView, setFinanceView] = useState<"recebimentos" | "despesas">("recebimentos");
   const [showCompanyForm, setShowCompanyForm] = useState(false);
+  const [showCompanyMenu, setShowCompanyMenu] = useState(false);
+  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [periodMonth, setPeriodMonth] = useState(() => new Date().getMonth() + 1);
   const [periodYear, setPeriodYear] = useState(() => new Date().getFullYear());
@@ -154,10 +156,34 @@ export default function Home() {
     event.preventDefault();
     if (!user || !companyName.trim()) return;
     setBusy(true); setError(""); setNotice("");
-    const { data, error } = await supabase.from("empresas").insert({ owner_id: user.id, nome: companyName.trim(), tipo: "empresa" }).select("id,nome,tipo").single();
-    if (error) setError(error.message);
-    else { setCompanies((old) => [...old, data as Company]); setCompanyId(data.id); setCompanyName(""); setShowCompanyForm(false); setNotice("Empresa cadastrada."); }
+    if (editingCompanyId) {
+      const { data, error } = await supabase.from("empresas").update({ nome: companyName.trim() }).eq("id", editingCompanyId).select("id,nome,tipo").single();
+      if (error) setError("Não foi possível alterar a empresa: " + error.message);
+      else { setCompanies(old => old.map(c => c.id === data.id ? data as Company : c)); setNotice("Dados da empresa atualizados."); setShowCompanyForm(false); setEditingCompanyId(null); setCompanyName(""); }
+    } else {
+      const { data, error } = await supabase.from("empresas").insert({ owner_id: user.id, nome: companyName.trim(), tipo: "empresa" }).select("id,nome,tipo").single();
+      if (error) setError(error.message);
+      else { setCompanies(old => [...old, data as Company]); setCompanyId(data.id); setCompanyName(""); setShowCompanyForm(false); setNotice("Empresa cadastrada."); }
+    }
     setBusy(false);
+  }
+  function openCompanyEditor() {
+    const current = companies.find(c => c.id === companyId);
+    if (!current) { setError("Selecione uma empresa primeiro."); return; }
+    setEditingCompanyId(current.id); setCompanyName(current.nome); setShowCompanyForm(true); setShowCompanyMenu(false);
+  }
+  async function deleteCompany() {
+    const current = companies.find(c => c.id === companyId);
+    if (!current) return;
+    if (!window.confirm(`Deseja excluir a empresa "${current.nome}"? A exclusão só será permitida se não houver registros vinculados.`)) return;
+    setBusy(true); setError(""); setNotice("");
+    const { error } = await supabase.from("empresas").delete().eq("id", current.id);
+    if (error) setError("Não foi possível excluir. Verifique se existem clientes ou lançamentos vinculados. Nenhum registro relacionado foi apagado.");
+    else {
+      const remaining = companies.filter(c => c.id !== current.id);
+      setCompanies(remaining); setCompanyId(remaining[0]?.id || ""); setNotice("Empresa excluída.");
+    }
+    setBusy(false); setShowCompanyMenu(false);
   }
 
   async function addClient(event: React.FormEvent) {
@@ -346,8 +372,22 @@ export default function Home() {
             <div className="ml-auto flex flex-col items-end gap-2">
               {tab==="financeiro" && <div className="flex flex-wrap items-end justify-end gap-2 rounded-2xl border border-[#38577e] bg-[#101c2e] p-3 shadow-inner shadow-black/20"><label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data inicial<input aria-label="Data inicial do financeiro" type="date" value={dateFrom} max={dateTo || undefined} onChange={e=>setDateFrom(e.target.value)} className="h-9 rounded-lg border border-[#405675] bg-[#091525] px-2 text-xs font-semibold text-white outline-none focus:border-rose-500"/></label><label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data final<input aria-label="Data final do financeiro" type="date" value={dateTo} min={dateFrom || undefined} onChange={e=>setDateTo(e.target.value)} className="h-9 rounded-lg border border-[#405675] bg-[#091525] px-2 text-xs font-semibold text-white outline-none focus:border-rose-500"/></label><button type="button" onClick={()=>{if(dateFrom && dateTo && dateFrom<=dateTo){setAppliedDateFrom(dateFrom);setAppliedDateTo(dateTo);}}} className="h-9 rounded-lg bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-4 text-xs font-bold text-white shadow-lg shadow-rose-950/30 hover:brightness-110">Filtrar</button><button type="button" onClick={()=>{const from=currentMonthStart(),to=currentMonthEnd();setDateFrom(from);setDateTo(to);setAppliedDateFrom(from);setAppliedDateTo(to);}} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-3 text-xs font-bold text-slate-200 hover:bg-[#203a59]">Este mês</button></div>}
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <select aria-label="Selecionar empresa" value={companyId} onChange={(e)=>setCompanyId(e.target.value)} className={inputClass+" h-9 w-auto min-w-0 max-w-32 px-2.5 py-1 text-xs"}><option value="">Empresa</option>{companies.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>
-                <button onClick={()=>setShowCompanyForm(true)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-semibold hover:bg-[#171717]"><Building2 size={14}/> Empresa</button>
+                <div className="relative">
+                  <button type="button" onClick={()=>setShowCompanyMenu(v=>!v)} className="inline-flex h-11 items-center gap-3 rounded-xl border border-rose-500/80 bg-gradient-to-r from-[#ed1c35] to-[#a9081b] px-4 text-sm font-bold text-white shadow-lg shadow-rose-950/30 transition hover:brightness-110">
+                    <Building2 size={19}/><span>Empresa</span><span className={`text-lg transition-transform ${showCompanyMenu?"rotate-180":""}`}>⌄</span>
+                  </button>
+                  {showCompanyMenu && <div className="absolute right-0 z-40 mt-2 w-72 overflow-hidden rounded-xl border border-rose-500/70 bg-[#101014] p-2 shadow-2xl shadow-black/60">
+                    <div className="border-b border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Empresa selecionada</div>
+                    <div className="px-3 py-3 text-sm font-bold text-white">{companies.find(c=>c.id===companyId)?.nome || "Nenhuma empresa selecionada"}</div>
+                    <button type="button" onClick={()=>{setEditingCompanyId(null);setCompanyName("");setShowCompanyForm(true);setShowCompanyMenu(false);}} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm text-white hover:bg-white/10"><Plus size={18}/>Cadastrar empresa</button>
+                    <button type="button" onClick={openCompanyEditor} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm text-white hover:bg-white/10"><Pencil size={18}/>Editar empresa</button>
+                    <button type="button" onClick={openCompanyEditor} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm text-white hover:bg-white/10"><SlidersHorizontal size={18}/>Alterar dados</button>
+                    <div className="my-1 border-t border-white/10"/>
+                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Trocar empresa</div>
+                    <div className="max-h-36 overflow-y-auto">{companies.map(c=><button key={c.id} type="button" onClick={()=>{setCompanyId(c.id);setShowCompanyMenu(false);}} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm hover:bg-white/10 ${c.id===companyId?"text-rose-300":"text-slate-200"}`}>{c.nome}{c.id===companyId?" ✓":""}</button>)}</div>
+                    <button type="button" disabled={!companyId || busy} onClick={deleteCompany} className="mt-2 flex w-full items-center gap-3 rounded-lg border-t border-rose-500/20 px-3 py-3 text-left text-sm font-semibold text-rose-400 hover:bg-rose-500/10 disabled:opacity-40"><Trash2 size={18}/>Excluir empresa</button>
+                  </div>}
+                </div>
                 
                 </div>
               </div>
@@ -466,7 +506,7 @@ export default function Home() {
           </>}
         </div>
       </section>
-      {showCompanyForm&&<div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4"><form onSubmit={addCompany} className="w-full max-w-md rounded-2xl border border-line bg-panel p-5"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">Cadastrar empresa</h3><button type="button" onClick={()=>setShowCompanyForm(false)}><X size={18}/></button></div><label className="block text-sm text-slate-300">Nome da empresa<input required value={companyName} onChange={e=>setCompanyName(e.target.value)} className={inputClass+" mt-2"}/></label><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={()=>setShowCompanyForm(false)} className="rounded-xl border border-line px-4 py-2 text-sm">Cancelar</button><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2 text-sm font-semibold">Salvar</button></div></form></div>}
+      {showCompanyForm&&<div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4"><form onSubmit={addCompany} className="w-full max-w-md rounded-2xl border border-line bg-panel p-5"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">{editingCompanyId ? "Editar empresa" : "Cadastrar empresa"}</h3><button type="button" onClick={()=>{setShowCompanyForm(false);setEditingCompanyId(null);setCompanyName("");}}><X size={18}/></button></div><label className="block text-sm text-slate-300">Nome da empresa<input required value={companyName} onChange={e=>setCompanyName(e.target.value)} className={inputClass+" mt-2"}/></label><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={()=>{setShowCompanyForm(false);setEditingCompanyId(null);setCompanyName("");}} className="rounded-xl border border-line px-4 py-2 text-sm">Cancelar</button><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2 text-sm font-semibold">Salvar</button></div></form></div>}
     </main>
   );
 }
