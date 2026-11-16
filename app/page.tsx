@@ -193,7 +193,7 @@ export default function Home() {
     setBusy(true); setError(""); setNotice("");
     const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, servidor: clientForm.servidor || null, aplicativo: clientForm.aplicativo || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, app_vencimento2: clientForm.app_vencimento2 || null, status: clientForm.status };
     const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
-    const { data, error } = await request.select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,status").single();
+    const { data, error } = await request.select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,app_vencimento2,status").single();
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
@@ -427,7 +427,7 @@ export default function Home() {
                 <div className="relative min-w-0 flex-1"><Search size={18} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente por nome ou MAC" className={inputClass+" pl-10 rounded-xl border-[#344b68] bg-[#091525]/80 py-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"}/></div>
                 <div className="flex gap-2">
                   <button type="button" onClick={()=>setShowFilters(v=>!v)} aria-expanded={showFilters} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${showFilters?"border-rose-500 bg-[#ed1c35]/15 text-rose-200":"border-[#344b68] bg-[#0b192b] text-slate-200 hover:border-slate-500 hover:bg-[#172943]"}`}><SlidersHorizontal size={17}/> Filtros <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-xs">{[statusFilter!=="todos",appFilter!=="todos",planFilter!=="todos",!!dueFrom,!!dueTo].filter(Boolean).length}</span></button>
-                  <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",indicacao:"",mac:"",servidor:"",aplicativo:"",observacoes:"",app_vencimento:"",status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition hover:-translate-y-0.5 hover:shadow-rose-900/40 disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
+                  <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",indicacao:"",mac:"",servidor:"",aplicativo:"",observacoes:"",app_vencimento:"",app_vencimento2:"",status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition hover:-translate-y-0.5 hover:shadow-rose-900/40 disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
                 </div>
               </div>
               {showFilters && <div className="space-y-3 border-t border-line pt-3">
