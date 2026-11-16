@@ -335,7 +335,7 @@ export default function Home() {
       <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-30 w-64 border-r border-[#35151a] bg-[#080808] p-5 md:block`}>
         <div className="mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-32 w-full object-contain" /><p className="-mt-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">VisionTV Gestor</p></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
-        <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}</nav>
+        <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}<button type="button" onClick={()=>void loadData()} disabled={busy || loading} className="mt-2 flex w-full items-center gap-3 rounded-xl border border-[#344b68] bg-[#101c2e] px-4 py-3 text-left text-sm font-semibold text-slate-300 transition hover:border-rose-500/60 hover:bg-[#172943] hover:text-white disabled:opacity-50"><RefreshCw size={18} className={loading?"animate-spin":""}/>Atualizar dados</button></nav>
         <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-3"><div className="truncate text-xs text-slate-400">{user.email}</div><button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm text-slate-300 hover:bg-[#171717]"><LogOut size={16}/> Sair</button><div className="border-t border-line pt-3 text-xs text-muted">Acesso privado • VisionTV Gestor</div></div>
       </aside>
       <section className="min-w-0 flex-1 md:ml-64">
@@ -348,7 +348,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <select aria-label="Selecionar empresa" value={companyId} onChange={(e)=>setCompanyId(e.target.value)} className={inputClass+" h-9 w-auto min-w-0 max-w-32 px-2.5 py-1 text-xs"}><option value="">Empresa</option>{companies.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select>
                 <button onClick={()=>setShowCompanyForm(true)} className="inline-flex h-9 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-semibold hover:bg-[#171717]"><Building2 size={14}/> Empresa</button>
-                <button onClick={()=>void loadData()} className="flex h-9 w-9 items-center justify-center rounded-lg border border-line hover:bg-[#171717]" title="Atualizar"><RefreshCw size={14}/></button>
+                
                 </div>
               </div>
           </div>
