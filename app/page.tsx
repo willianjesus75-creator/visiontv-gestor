@@ -321,7 +321,7 @@ export default function Home() {
   return (
     <main className="min-h-screen md:flex">
       <aside className={`${menuOpen ? "block" : "hidden"} fixed inset-y-0 left-0 z-30 w-64 border-r border-[#35151a] bg-[#080808] p-5 md:block`}>
-        <div className="mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-32 w-full object-contain" /><p className="mt-2 text-center text-sm font-semibold tracking-wide text-slate-200">VisionTV Gestor</p></div>
+        <div className="mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-32 w-full object-contain" /><p className="-mt-1 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">VisionTV Gestor</p></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
         <nav className="space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}</nav>
         <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-3"><div className="truncate text-xs text-slate-400">{user.email}</div><button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm text-slate-300 hover:bg-[#171717]"><LogOut size={16}/> Sair</button><div className="border-t border-line pt-3 text-xs text-muted">Acesso privado • VisionTV Gestor</div></div>
