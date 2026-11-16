@@ -210,12 +210,28 @@ export default function Home() {
   async function setSubscriptionBilling(sub: Subscription) {
     const nextStatus = sub.cobranca_status === "recebido" ? "em_aberto" : "recebido";
     setBusy(true); setError(""); setNotice("");
-    const { error } = await supabase.from("assinaturas").update({
-      cobranca_status: nextStatus,
-      recebido_em: nextStatus === "recebido" ? today() : null
-    }).eq("id", sub.id);
+
+    // Ao confirmar o recebimento, reinicia o ciclo por 30 dias a partir de hoje.
+    // Usa a data local do navegador para evitar diferença de fuso horário.
+    const now = new Date();
+    const localToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const nextDueDate = new Date(localToday);
+    nextDueDate.setDate(nextDueDate.getDate() + 30);
+    const dateString = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+    const updates = nextStatus === "recebido"
+      ? { cobranca_status: nextStatus, recebido_em: dateString(localToday), data_vencimento: dateString(nextDueDate) }
+      : { cobranca_status: nextStatus, recebido_em: null };
+
+    const { error } = await supabase.from("assinaturas").update(updates).eq("id", sub.id);
     if (error) setError("Não foi possível atualizar a cobrança: " + error.message);
-    else { setNotice(nextStatus === "recebido" ? "Assinatura marcada como recebida." : "Assinatura voltou para em aberto."); await loadData(); }
+    else {
+      setNotice(nextStatus === "recebido"
+        ? "Pagamento confirmado. O próximo vencimento foi atualizado para 30 dias a partir de hoje."
+        : "Cobrança voltou para em aberto. A data de vencimento permanece como está.");
+      await loadData();
+    }
     setBusy(false);
   }
 
