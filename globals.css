@@ -4,12 +4,12 @@
 
 :root {
   color-scheme: dark;
-  --vision-bg: #070b14;
-  --vision-panel: #101d33;
-  --vision-panel-soft: #142743;
-  --vision-blue: #1b3b65;
-  --vision-line: #294363;
-  --vision-red: #ed1c35;
+  --vision-bg: #050505;
+  --vision-panel: #090909;
+  --vision-panel-soft: #101010;
+  --vision-blue: #142238;
+  --vision-line: #29313c;
+  --vision-red: #f10d24;
 }
 * { box-sizing: border-box; }
 html { min-height: 100%; background: var(--vision-bg); }
@@ -17,15 +17,15 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(ellipse at 82% 0%, rgba(27, 59, 101, .24), transparent 38%),
-    linear-gradient(145deg, #050810 0%, #0a1220 48%, #080d18 100%);
-  color: #f8fafc;
+    radial-gradient(ellipse at 0% 8%, rgba(95, 0, 12, .24), transparent 34%),
+    #050505;
+  color: #f5f5f5;
   font-family: Arial, Helvetica, sans-serif;
 }
 button, input, select, textarea { font: inherit; }
-::selection { background: rgba(237, 28, 53, .35); color: #fff; }
+::selection { background: rgba(241, 13, 36, .35); color: #fff; }
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: #ed1c35 !important;
-  box-shadow: 0 0 0 3px rgba(237, 28, 53, .12);
+  border-color: #f10d24 !important;
+  box-shadow: 0 0 0 3px rgba(241, 13, 36, .12);
 }
