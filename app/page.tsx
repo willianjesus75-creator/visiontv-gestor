@@ -477,7 +477,18 @@ export default function Home() {
                 style={{ touchAction: "pan-y" }}
                 onPointerDown={(event) => {
                   if (event.pointerType !== "mouse" || event.button !== 0) return;
-                  if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+                  const target = event.target as HTMLElement;
+                  if (target.closest("button, a, input, select, textarea")) return;
+                  const cell = target.closest("td, th");
+                  if (cell) {
+                    const textRange = document.createRange();
+                    textRange.selectNodeContents(cell);
+                    const overText = Array.from(textRange.getClientRects()).some((rect) =>
+                      event.clientX >= rect.left && event.clientX <= rect.right &&
+                      event.clientY >= rect.top && event.clientY <= rect.bottom
+                    );
+                    if (overText) return;
+                  }
                   clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
                 }}
                 onPointerMove={(event) => {
