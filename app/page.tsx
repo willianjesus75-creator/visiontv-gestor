@@ -461,12 +461,8 @@ export default function Home() {
                   {field("Validade do aplicativo",<div className="grid grid-cols-2 gap-2"><div><span className="mb-1 block text-xs text-muted">Data 1</span><input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/></div><div><span className="mb-1 block text-xs text-muted">Data 2</span><input type="date" value={clientForm.app_vencimento2} onChange={e=>setClientForm({...clientForm,app_vencimento2:e.target.value})} className={inputClass}/></div></div>)}
                   {field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}
                   {field("Chave",<input value={clientForm.chave} onChange={e=>setClientForm({...clientForm,chave:e.target.value})} className={inputClass}/>)}
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="grid gap-3 sm:grid-cols-2">
                   {field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
-                  <div className="sm:col-span-2">{field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/>)}</div>
+                  <div>{field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/>)}</div>
                 </div>
               </div>
               <div className="mt-4 flex gap-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
