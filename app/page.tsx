@@ -472,19 +472,19 @@ export default function Home() {
                 <table className="w-full table-fixed text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[13px] font-bold uppercase tracking-wide text-slate-100">
                     <tr>
-                      <th className="px-2 py-3 break-words">Cliente</th><th className="px-2 py-3 break-words">Indicação</th><th className="px-2 py-3 break-words">Observação</th><th className="px-2 py-3 break-words">Plano</th><th className="px-2 py-3 break-words">Acesso</th><th className="px-2 py-3 break-words">Servidor</th><th className="px-2 py-3 break-words">MAC / Chave</th><th className="px-2 py-3 break-words">Aplicativo</th><th className="px-2 py-3 break-words">Valor</th><th className="px-2 py-3 break-words">Vencimento</th><th className="px-2 py-3 break-words">Status</th><th className="px-2 py-3 break-words">Ações</th>
+                      <th className="px-4 py-3 break-words text-left">Cliente</th><th className="px-2 py-3 break-words">Indicação</th><th className="px-2 py-3 break-words">Observação</th><th className="px-2 py-3 break-words">Plano</th><th className="px-2 py-3 break-words">Acesso</th><th className="px-2 py-3 break-words">Servidor</th><th className="py-3 pl-3 pr-7 break-words text-left">MAC / Chave</th><th className="py-3 pl-7 pr-3 break-words text-left">Aplicativo</th><th className="px-2 py-3 break-words">Valor</th><th className="px-2 py-3 break-words">Vencimento</th><th className="px-2 py-3 break-words">Status</th><th className="px-2 py-3 break-words">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
-                      <td className="px-2 py-3 break-words text-center align-middle"><div className="min-w-[150px] translate-x-2 text-center font-semibold text-white">{c.nome}</div></td>
+                      <td className="px-4 py-3 break-words text-left align-middle"><div className="w-full text-left font-semibold text-white">{c.nome}</div></td>
                       <td className="px-2 py-3 break-words font-medium text-slate-200">{c.indicacao||"—"}</td>
                       <td className="px-2 py-3 break-words whitespace-normal text-sm font-normal leading-normal text-slate-200">{c.observacoes||"—"}</td>
                       <td className="px-2 py-3 break-words">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="px-2 py-3 break-words">{sub?sub.quantidade_telas:"—"}</td>
                       <td className="px-2 py-3 break-words">{c.servidor||"—"}</td>
-                      <td className="py-3 pl-2 pr-5 break-words"><div className="flex flex-col items-start gap-0.5 whitespace-nowrap text-sm font-normal leading-normal text-slate-200"><span>{c.mac||"—"}</span><span>{c.chave||"—"}</span></div></td>
-                      <td className="py-3 pl-5 pr-2 break-words"><div className="text-sm leading-normal">{c.aplicativo||"—"}</div></td>
+                      <td className="py-3 pl-3 pr-7 break-words"><div className="flex flex-col items-start gap-0.5 whitespace-nowrap text-sm font-normal leading-normal text-slate-200"><span>{c.mac||"—"}</span><span>{c.chave||"—"}</span></div></td>
+                      <td className="py-3 pl-7 pr-3 break-words"><div className="text-sm leading-normal">{c.aplicativo||"—"}</div></td>
                       <td className="px-2 py-3 break-words font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
                       <td className="px-2 py-3 break-words">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="px-2 py-3 break-words"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
