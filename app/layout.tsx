@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   applicationName: "VisionTV Gestor",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "VisionTV Gestor" },
   icons: {
-    icon: [{ url: "/icon-192.jpg", type: "image/jpeg", sizes: "192x192" }],
-    shortcut: "/icon-192.jpg",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
     apple: [{ url: "/apple-touch-icon.jpg", type: "image/jpeg", sizes: "180x180" }]
   }
 };
