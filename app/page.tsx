@@ -477,7 +477,7 @@ export default function Home() {
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
-                      <td className="px-2 py-3 break-words text-center align-middle"><div className="flex min-h-[40px] w-full items-center justify-center"><div className="text-center font-semibold text-white">{c.nome}</div></div></td>
+                      <td className="px-2 py-3 break-words text-center align-middle"><div className="min-w-[150px] text-center font-semibold text-white">{c.nome}</div></td>
                       <td className="px-2 py-3 break-words font-medium text-slate-200">{c.indicacao||"—"}</td>
                       <td className="px-2 py-3 break-words whitespace-normal text-sm font-normal leading-normal text-slate-200">{c.observacoes||"—"}</td>
                       <td className="px-2 py-3 break-words">{sub?.nome_plano||"Sem plano"}</td>
