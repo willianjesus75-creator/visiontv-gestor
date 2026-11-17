@@ -470,20 +470,20 @@ export default function Home() {
             <div className="overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1350px] text-center text-sm">
-                  <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-sm font-bold uppercase tracking-wide text-slate-100">
+                  <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[13px] font-bold uppercase tracking-wide text-slate-100">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">MAC / Chave</th><th className="p-4">Aplicativo</th><th className="p-4">Valor do plano</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">MAC / Chave</th><th className="p-4">Aplicativo</th><th className="p-4">Valor</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-white/[0.07] align-top transition-colors hover:bg-[#203a59]/35">
                       <td className="p-4 text-center"><div className="min-w-[150px]"><div className="font-semibold text-white">{c.nome}</div></div></td>
                       <td className="p-4 font-medium text-slate-200">{c.indicacao||"—"}</td>
-                      <td className="p-4 max-w-[220px] whitespace-normal text-xs text-muted">{c.observacoes||"—"}</td>
+                      <td className="p-4 max-w-[220px] whitespace-normal text-sm text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="p-4">{sub?sub.quantidade_telas:"—"}</td>
                       <td className="p-4">{c.servidor||"—"}</td>
-                      <td className="p-4"><div className="font-semibold">{c.mac||"—"}</div><div className="mt-1 text-xs text-slate-400">{c.chave||"—"}</div></td>
+                      <td className="p-4"><div className="font-semibold">{c.mac||"—"}</div><div className="mt-1 text-sm text-slate-400">{c.chave||"—"}</div></td>
                       <td className="p-4"><div className="font-semibold">{c.aplicativo||"—"}</div></td>
                       <td className="p-4 font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
