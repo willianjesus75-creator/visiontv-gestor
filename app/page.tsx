@@ -354,8 +354,8 @@ export default function Home() {
   );
 
   const nav = [{ id: "inicio" as const, label: "Visão geral", icon: LayoutDashboard }, { id: "clientes" as const, label: "Clientes", icon: Users }, { id: "financeiro" as const, label: "Financeiro", icon: Wallet }];
-  const inputClass = "w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-xs text-slate-100 outline-none focus:border-[#ed1c35]";
-  const field = (label: string, control: React.ReactNode) => <label className="block space-y-1.5 text-xs text-slate-300">{label}{control}</label>;
+  const inputClass = "w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-[#ed1c35]";
+  const field = (label: string, control: React.ReactNode) => <label className="block space-y-1.5 text-sm text-slate-300">{label}{control}</label>;
 
   return (
     <main className="min-h-screen md:flex">
