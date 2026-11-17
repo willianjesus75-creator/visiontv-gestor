@@ -472,7 +472,7 @@ export default function Home() {
                 <table className="w-full min-w-[1350px] text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-sm font-bold uppercase tracking-wide text-slate-100">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">MAC / Chave</th><th className="p-4">Aplicativo</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">MAC / Chave</th><th className="p-4">Aplicativo</th><th className="p-4">Valor do plano</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -485,6 +485,7 @@ export default function Home() {
                       <td className="p-4">{c.servidor||"—"}</td>
                       <td className="p-4"><div className="font-semibold">{c.mac||"—"}</div><div className="mt-1 text-xs text-slate-400">{c.chave||"—"}</div></td>
                       <td className="p-4"><div className="font-semibold">{c.aplicativo||"—"}</div></td>
+                      <td className="p-4 font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
                       <td className="p-4"><div className="flex min-w-[132px] items-center justify-center gap-1.5"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-2 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-2 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-2 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
