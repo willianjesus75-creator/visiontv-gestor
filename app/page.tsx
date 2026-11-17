@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Activity, Building2, CalendarDays, CreditCard, LayoutDashboard,
@@ -55,6 +55,9 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [search, setSearch] = useState("");
+  const clientTableScrollRef = useRef<HTMLDivElement>(null);
+  const clientTableDragRef = useRef<{ pointerId: number; startX: number; scrollLeft: number; moved: boolean } | null>(null);
+  const [isDraggingClientTable, setIsDraggingClientTable] = useState(false);
   const [clientForm, setClientForm] = useState({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", valor_aplicativo: "", chave: "", tv: "", observacoes: "", app_vencimento: "", app_vencimento2: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
   const [paymentForm, setPaymentForm] = useState({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
@@ -468,7 +471,36 @@ export default function Home() {
               <div className="mt-4 flex gap-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form>}
             <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
-              <div className="w-full overflow-x-auto overscroll-x-contain">
+              <div
+                ref={clientTableScrollRef}
+                className={`w-full overflow-x-auto overscroll-x-contain cursor-grab active:cursor-grabbing select-none [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : ""}`}
+                style={{ touchAction: "pan-y" }}
+                onPointerDown={(event) => {
+                  if (event.pointerType === "mouse" && event.button !== 0) return;
+                  if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+                  clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  const drag = clientTableDragRef.current;
+                  if (!drag || drag.pointerId !== event.pointerId) return;
+                  const delta = event.clientX - drag.startX;
+                  if (Math.abs(delta) > 4) drag.moved = true;
+                  if (drag.moved) {
+                    setIsDraggingClientTable(true);
+                    event.currentTarget.scrollLeft = drag.scrollLeft - delta;
+                  }
+                }}
+                onPointerUp={(event) => {
+                  if (clientTableDragRef.current?.pointerId === event.pointerId) {
+                    clientTableDragRef.current = null;
+                    setIsDraggingClientTable(false);
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  }
+                }}
+                onPointerCancel={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
+                onLostPointerCapture={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
+              >
                 <table className="w-max min-w-full table-auto text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[13px] font-bold uppercase tracking-wide text-slate-100">
                     <tr>
