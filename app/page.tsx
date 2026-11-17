@@ -473,21 +473,24 @@ export default function Home() {
             <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div
                 ref={clientTableScrollRef}
-                className={`w-full overflow-x-auto overscroll-x-contain cursor-grab active:cursor-grabbing select-none [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : ""}`}
+                className={`w-full overflow-x-auto overscroll-x-contain cursor-auto [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : ""}`}
                 style={{ touchAction: "pan-y" }}
                 onPointerDown={(event) => {
-                  if (event.pointerType === "mouse" && event.button !== 0) return;
+                  if (event.pointerType !== "mouse" || event.button !== 0) return;
                   if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
                   clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
-                  event.currentTarget.setPointerCapture(event.pointerId);
                 }}
                 onPointerMove={(event) => {
                   const drag = clientTableDragRef.current;
                   if (!drag || drag.pointerId !== event.pointerId) return;
                   const delta = event.clientX - drag.startX;
-                  if (Math.abs(delta) > 4) drag.moved = true;
-                  if (drag.moved) {
+                  if (!drag.moved && Math.abs(delta) > 6) {
+                    drag.moved = true;
+                    event.currentTarget.setPointerCapture(event.pointerId);
                     setIsDraggingClientTable(true);
+                  }
+                  if (drag.moved) {
+                    event.preventDefault();
                     event.currentTarget.scrollLeft = drag.scrollLeft - delta;
                   }
                 }}
