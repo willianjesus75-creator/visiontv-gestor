@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   applicationName: "VisionTV Gestor",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "VisionTV Gestor" },
-  icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" }
+  icons: {
+    icon: [{ url: "/icon-192.jpg", type: "image/jpeg", sizes: "192x192" }],
+    shortcut: "/icon-192.jpg",
+    apple: [{ url: "/apple-touch-icon.jpg", type: "image/jpeg", sizes: "180x180" }]
+  }
 };
 
 export const viewport: Viewport = {
