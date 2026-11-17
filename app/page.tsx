@@ -498,7 +498,7 @@ export default function Home() {
                   const target = event.target as HTMLElement;
                   if (target.closest("button, a, input, select, textarea")) return;
                   const cell = target.closest("td, th");
-                  if (cell && isPointOverClientText(cell, event.clientX, event.clientY)) return;
+                  if (cell && isPointOverClientText(cell as HTMLElement, event.clientX, event.clientY)) return;
                   clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
                 }}
                 onPointerMove={(event) => {
