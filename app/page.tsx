@@ -326,8 +326,11 @@ export default function Home() {
   }), [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter, dueFrom, dueTo]);
   const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
   const monthlyRegistered = clientSubscriptions.reduce((sum, sub) => sum + Number(sub.valor || 0) / (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1), 0);
-  const clientOpen = clientSubscriptions.filter(sub => sub.cobranca_status !== "recebido").reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
-  const clientReceived = clientSubscriptions.filter(sub => sub.cobranca_status === "recebido").reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
+  // Assinaturas ativas e ainda dentro do prazo contam como recebidas.
+  // Assinaturas vencidas ou inativas permanecem no valor em aberto.
+  const isClientSubscriptionReceived = (sub: Subscription) => sub.status === "ativa" && sub.data_vencimento >= today();
+  const clientOpen = clientSubscriptions.filter(sub => !isClientSubscriptionReceived(sub)).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
+  const clientReceived = clientSubscriptions.filter(isClientSubscriptionReceived).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
   const inDateRange = (date: string | null | undefined, from = appliedDateFrom, to = appliedDateTo) => !!date && date >= from && date <= to;
