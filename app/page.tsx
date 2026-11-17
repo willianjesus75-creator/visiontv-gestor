@@ -211,9 +211,11 @@ export default function Home() {
   async function addClient(event: React.FormEvent) {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa antes de incluir clientes."); return; }
+    if (busy) return;
+    const clientIdBeingEdited = editingClient;
     setBusy(true); setError(""); setNotice("");
     const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, servidor: clientForm.servidor || null, aplicativo: clientForm.aplicativo || null, valor_aplicativo: clientForm.valor_aplicativo ? Number(clientForm.valor_aplicativo) : null, chave: clientForm.chave || null, tv: clientForm.tv || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, app_vencimento2: clientForm.app_vencimento2 || null, status: clientForm.status };
-    const request = editingClient ? supabase.from("clientes").update(payload).eq("id", editingClient) : supabase.from("clientes").insert(payload);
+    const request = clientIdBeingEdited ? supabase.from("clientes").update(payload).eq("id", clientIdBeingEdited) : supabase.from("clientes").insert(payload);
     const { data, error } = await request.select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,app_vencimento2,status").single();
     if (error) setError(error.message);
     else {
@@ -231,9 +233,11 @@ export default function Home() {
           : await supabase.from("assinaturas").insert(subscriptionPayload);
         if (subError) setError("Cliente salvo, mas a assinatura não foi atualizada: " + subError.message);
       }
-      setClients((old) => [data as Client, ...old]);
+      setClients((old) => clientIdBeingEdited
+        ? old.map((client) => client.id === clientIdBeingEdited ? { ...client, ...data } as Client : client)
+        : [data as Client, ...old.filter((client) => client.id !== data.id)]);
       setClientForm({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", valor_aplicativo: "", chave: "", tv: "", observacoes: "", app_vencimento: "", app_vencimento2: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
-      setShowClientForm(false); setEditingClient(null); setNotice(editingClient ? "Cliente atualizado." : "Cliente cadastrado.");
+      setShowClientForm(false); setEditingClient(null); setNotice(clientIdBeingEdited ? "Cliente atualizado." : "Cliente cadastrado.");
       await loadData();
     }
     setBusy(false);
