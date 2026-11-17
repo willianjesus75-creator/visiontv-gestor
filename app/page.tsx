@@ -454,6 +454,7 @@ export default function Home() {
               <div className="my-5 border-t border-[#344b68] pt-4">
                 <p className="mb-3 text-sm font-semibold text-white">Informações do aplicativo</p>
                 <div className="grid gap-3 sm:grid-cols-2">
+                  {field("Servidor",<input value={clientForm.servidor} onChange={e=>setClientForm({...clientForm,servidor:e.target.value})} placeholder="Nome ou endereço do servidor" className={inputClass}/>)}
                   {field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}
                   {field("Valor do aplicativo (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor_aplicativo} onChange={e=>setClientForm({...clientForm,valor_aplicativo:e.target.value})} className={inputClass}/>)}
                   {field("TV",<input value={clientForm.tv} onChange={e=>setClientForm({...clientForm,tv:e.target.value})} className={inputClass}/>)}
@@ -462,9 +463,8 @@ export default function Home() {
                   {field("Chave",<input value={clientForm.chave} onChange={e=>setClientForm({...clientForm,chave:e.target.value})} className={inputClass}/>)}
                 </div>
               </div>
-              <div className="border-t border-[#344b68] pt-4">
+              <div className="mt-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {field("Servidor",<input value={clientForm.servidor} onChange={e=>setClientForm({...clientForm,servidor:e.target.value})} placeholder="Nome ou endereço do servidor" className={inputClass}/>)}
                   {field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
                   <div className="sm:col-span-2">{field("Observações",<textarea value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} className={inputClass}/>)}</div>
                 </div>
