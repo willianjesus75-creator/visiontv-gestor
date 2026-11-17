@@ -470,7 +470,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
-            </form>}    </form>}
+            </form>}
             <div className="overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1350px] text-center text-sm">
