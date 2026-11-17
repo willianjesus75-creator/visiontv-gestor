@@ -476,15 +476,15 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-white/[0.07] align-top transition-colors hover:bg-[#203a59]/35">
+                    {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
                       <td className="p-4 text-center"><div className="min-w-[150px]"><div className="font-semibold text-white">{c.nome}</div></div></td>
                       <td className="p-4 font-medium text-slate-200">{c.indicacao||"—"}</td>
-                      <td className="p-4 max-w-[220px] whitespace-normal text-xs leading-tight text-muted">{c.observacoes||"—"}</td>
+                      <td className="p-4 max-w-[220px] whitespace-normal text-sm leading-normal text-muted">{c.observacoes||"—"}</td>
                       <td className="p-4">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="p-4">{sub?sub.quantidade_telas:"—"}</td>
                       <td className="p-4">{c.servidor||"—"}</td>
-                      <td className="p-4"><div className="flex items-center gap-2 whitespace-nowrap text-xs leading-tight"><span className="font-semibold">{c.mac||"—"}</span><span className="text-slate-400">{c.chave||"—"}</span></div></td>
-                      <td className="p-4"><div className="text-xs leading-tight">{c.aplicativo||"—"}</div></td>
+                      <td className="p-4"><div className="flex items-center gap-2 whitespace-nowrap text-sm leading-normal"><span className="font-semibold">{c.mac||"—"}</span><span className="text-slate-400">{c.chave||"—"}</span></div></td>
+                      <td className="p-4"><div className="text-sm leading-normal">{c.aplicativo||"—"}</div></td>
                       <td className="p-4 font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
