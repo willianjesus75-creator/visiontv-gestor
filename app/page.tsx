@@ -470,9 +470,9 @@ export default function Home() {
             <div className="overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1350px] text-center text-sm">
-                  <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[11px] uppercase tracking-wider text-slate-200">
+                  <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-sm font-bold uppercase tracking-wide text-slate-100">
                     <tr>
-                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">Aplicativo</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
+                      <th className="p-4">Cliente</th><th className="p-4">Indicação</th><th className="p-4">Observação</th><th className="p-4">Plano</th><th className="p-4">Acesso</th><th className="p-4">Servidor</th><th className="p-4">MAC / Chave</th><th className="p-4">Aplicativo</th><th className="p-4">Vencimento</th><th className="p-4">Status</th><th className="p-4">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -483,6 +483,7 @@ export default function Home() {
                       <td className="p-4">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="p-4">{sub?sub.quantidade_telas:"—"}</td>
                       <td className="p-4">{c.servidor||"—"}</td>
+                      <td className="p-4"><div className="font-semibold">{c.mac||"—"}</div><div className="mt-1 text-xs text-slate-400">{c.chave||"—"}</div></td>
                       <td className="p-4"><div className="font-semibold">{c.aplicativo||"—"}</div></td>
                       <td className="p-4">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="p-4"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
