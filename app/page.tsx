@@ -524,6 +524,31 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
+                                        {showClientForm && !editingClient && <tr><td colSpan={11} className="p-4"><form onSubmit={addClient} className="w-full rounded-2xl border border-[#344b68] bg-[#0b192b] p-6 shadow-lg shadow-black/20">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+                <div className="lg:col-span-2">{field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} placeholder="Nome completo do cliente" className={inputClass+" min-h-11"}/>)}</div>
+                {field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}
+                {field("Quantidade de acessos",<input type="number" min="1" value={clientForm.telas} onChange={e=>setClientForm({...clientForm,telas:e.target.value})} className={inputClass}/>)}
+                {field("Valor (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor} onChange={e=>setClientForm({...clientForm,valor:e.target.value})} className={inputClass}/>)}
+                {field("Vencimento",<input type="date" value={clientForm.vencimento} onChange={e=>setClientForm({...clientForm,vencimento:e.target.value})} className={inputClass}/>)}
+                {field("Indicação",<input inputMode="numeric" value={clientForm.indicacao} onChange={e=>setClientForm({...clientForm,indicacao:e.target.value.replace(/[^0-9]/g,"")})} placeholder="Número da indicação" className={inputClass}/>)}
+              </div>
+              <div className="my-5 border-t border-[#344b68] pt-4">
+                <p className="mb-3 text-sm font-semibold text-white">Informações do aplicativo</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {field("Servidor",<input value={clientForm.servidor} onChange={e=>setClientForm({...clientForm,servidor:e.target.value})} placeholder="Nome ou endereço do servidor" className={inputClass}/>)}
+                  {field("Aplicativo",<input value={clientForm.aplicativo} onChange={e=>setClientForm({...clientForm,aplicativo:e.target.value})} className={inputClass}/>)}
+                  {field("Valor do aplicativo (R$)",<input type="number" min="0" step="0.01" value={clientForm.valor_aplicativo} onChange={e=>setClientForm({...clientForm,valor_aplicativo:e.target.value})} className={inputClass}/>)}
+                  {field("TV",<input value={clientForm.tv} onChange={e=>setClientForm({...clientForm,tv:e.target.value})} className={inputClass}/>)}
+                  {field("Validade do aplicativo",<div className="grid grid-cols-2 gap-2"><div><span className="mb-1 block text-xs text-muted">Data 1</span><input type="date" value={clientForm.app_vencimento} onChange={e=>setClientForm({...clientForm,app_vencimento:e.target.value})} className={inputClass}/></div><div><span className="mb-1 block text-xs text-muted">Data 2</span><input type="date" value={clientForm.app_vencimento2} onChange={e=>setClientForm({...clientForm,app_vencimento2:e.target.value})} className={inputClass}/></div></div>)}
+                  {field("MAC",<input value={clientForm.mac} onChange={e=>setClientForm({...clientForm,mac:e.target.value})} className={inputClass}/>)}
+                  {field("Chave",<input value={clientForm.chave} onChange={e=>setClientForm({...clientForm,chave:e.target.value})} className={inputClass}/>)}
+                  {field("Status",<select value={clientForm.status} onChange={e=>setClientForm({...clientForm,status:e.target.value})} className={inputClass}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>)}
+                  <div className="lg:col-span-2">{field("Observações",<textarea rows={3} value={clientForm.observacoes} onChange={e=>setClientForm({...clientForm,observacoes:e.target.value})} placeholder="Digite observações completas..." className={inputClass+" min-h-24 resize-y"}/>)}</div>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
+            </form></td></tr>}
                     {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <><tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
                       <td className="min-w-[150px] px-3 py-3 text-left align-middle"><div className="whitespace-normal break-words font-semibold leading-6 text-white">{c.nome}</div></td>
                       <td className="min-w-[82px] px-3 py-3 whitespace-normal break-words font-medium text-slate-200">{c.indicacao||"—"}</td>
