@@ -481,13 +481,21 @@ export default function Home() {
                   if (target.closest("button, a, input, select, textarea")) return;
                   const cell = target.closest("td, th");
                   if (cell) {
+                    const docWithCaret = document as Document & {
+                      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+                    };
+                    const caretRange = docWithCaret.caretRangeFromPoint?.(event.clientX, event.clientY);
+                    const caretNode = caretRange?.startContainer;
+                    const overTextAtPoint = !!caretNode && cell.contains(caretNode) &&
+                      (caretNode.nodeType === Node.TEXT_NODE || !!caretNode.parentElement?.closest("span, strong, em, b, i"));
+                    if (overTextAtPoint) return;
                     const textRange = document.createRange();
                     textRange.selectNodeContents(cell);
-                    const overText = Array.from(textRange.getClientRects()).some((rect) =>
+                    const overTextByBounds = Array.from(textRange.getClientRects()).some((rect) =>
                       event.clientX >= rect.left && event.clientX <= rect.right &&
                       event.clientY >= rect.top && event.clientY <= rect.bottom
                     );
-                    if (overText) return;
+                    if (overTextByBounds) return;
                   }
                   clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
                 }}
