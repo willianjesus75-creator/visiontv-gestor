@@ -492,9 +492,11 @@ export default function Home() {
               <div
                 ref={clientTableScrollRef}
                 className={`w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : isOverClientTableText ? "cursor-text" : "cursor-grab"}`}
-                style={{ touchAction: "pan-y" }}
+                style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
                 onPointerDown={(event) => {
-                  if (event.pointerType === "mouse" && event.button !== 0) return;
+                  // No celular/tablet, preservar a rolagem horizontal nativa por toque.
+                  if (event.pointerType !== "mouse") return;
+                  if (event.button !== 0) return;
                   const target = event.target as HTMLElement;
                   if (target.closest("button, a, input, select, textarea")) return;
                   const cell = target.closest("td, th");
@@ -502,6 +504,8 @@ export default function Home() {
                   clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
                 }}
                 onPointerMove={(event) => {
+                  // O gesto touch é tratado pela rolagem nativa do navegador.
+                  if (event.pointerType !== "mouse") return;
                   const drag = clientTableDragRef.current;
                   if (!drag || drag.pointerId !== event.pointerId) {
                     const target = event.target as HTMLElement;
