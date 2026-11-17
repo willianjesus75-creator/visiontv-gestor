@@ -472,7 +472,7 @@ export default function Home() {
                 <table className="w-max min-w-full table-auto text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[13px] font-bold uppercase tracking-wide text-slate-100">
                     <tr>
-                      <th className="w-[150px] min-w-[150px] px-3 py-3 text-left">Cliente</th><th className="w-[82px] min-w-[82px] px-3 py-3">Indicação</th><th className="w-[170px] min-w-[170px] px-3 py-3">Observação</th><th className="w-[105px] min-w-[105px] px-3 py-3">Plano</th><th className="w-[62px] min-w-[62px] px-3 py-3">Acesso</th><th className="w-[112px] min-w-[112px] px-3 py-3">Servidor</th><th className="w-[162px] min-w-[162px] px-3 py-3 text-left">MAC / Chave</th><th className="w-[162px] min-w-[162px] px-3 py-3 text-left">Aplicativo</th><th className="w-[82px] min-w-[82px] px-3 py-3">Valor</th><th className="w-[82px] min-w-[82px] px-3 py-3">Vencimento</th><th className="w-[105px] min-w-[105px] px-3 py-3">Status</th><th className="w-[112px] min-w-[112px] px-3 py-3">Ações</th>
+                      <th className="w-[150px] min-w-[150px] px-3 py-3 text-left">Cliente</th><th className="w-[82px] min-w-[82px] px-3 py-3">Indicação</th><th className="w-[170px] min-w-[170px] px-3 py-3">Observação</th><th className="w-[105px] min-w-[105px] px-3 py-3">Plano</th><th className="w-[62px] min-w-[62px] px-3 py-3">Acesso</th><th className="w-[112px] min-w-[112px] px-3 py-3">Servidor</th><th className="w-[162px] min-w-[162px] px-3 py-3 text-left">Aplicativo</th><th className="w-[162px] min-w-[162px] px-3 py-3 text-left">MAC / Chave</th><th className="w-[82px] min-w-[82px] px-3 py-3">Valor</th><th className="w-[82px] min-w-[82px] px-3 py-3">Vencimento</th><th className="w-[105px] min-w-[105px] px-3 py-3">Status</th><th className="w-[112px] min-w-[112px] px-3 py-3">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -483,8 +483,8 @@ export default function Home() {
                       <td className="min-w-[105px] px-3 py-3 whitespace-normal break-words">{sub?.nome_plano||"Sem plano"}</td>
                       <td className="min-w-[62px] px-3 py-3 whitespace-nowrap">{sub?sub.quantidade_telas:"—"}</td>
                       <td className="min-w-[112px] px-3 py-3 whitespace-normal break-words">{c.servidor||"—"}</td>
-                      <td className="min-w-[162px] px-3 py-3"><div className="flex flex-col items-start gap-1 whitespace-normal break-all text-sm font-normal leading-normal text-slate-200"><span>{c.mac||"—"}</span><span>{c.chave||"—"}</span></div></td>
                       <td className="min-w-[162px] px-3 py-3 whitespace-normal break-words text-left text-sm leading-6">{c.aplicativo||"—"}</td>
+                      <td className="min-w-[162px] px-3 py-3"><div className="flex flex-col items-start gap-1 whitespace-normal break-all text-sm font-normal leading-normal text-slate-200"><span>{c.mac||"—"}</span><span>{c.chave||"—"}</span></div></td>
                       <td className="min-w-[82px] px-3 py-3 whitespace-nowrap font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
                       <td className="min-w-[82px] px-3 py-3 whitespace-nowrap">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="min-w-[105px] px-3 py-3 whitespace-nowrap"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
