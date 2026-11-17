@@ -57,7 +57,25 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const clientTableScrollRef = useRef<HTMLDivElement>(null);
   const clientTableDragRef = useRef<{ pointerId: number; startX: number; scrollLeft: number; moved: boolean } | null>(null);
+  const isPointOverClientText = (cell: HTMLElement, x: number, y: number) => {
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const value = node.textContent || "";
+      for (let index = 0; index < value.length; index++) {
+        if (/\\s/.test(value[index])) continue;
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        for (const rect of Array.from(range.getClientRects())) {
+          if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return true;
+        }
+      }
+    }
+    return false;
+  };
   const [isDraggingClientTable, setIsDraggingClientTable] = useState(false);
+  const [isOverClientTableText, setIsOverClientTableText] = useState(false);
   const [clientForm, setClientForm] = useState({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", valor_aplicativo: "", chave: "", tv: "", observacoes: "", app_vencimento: "", app_vencimento2: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
   const [paymentForm, setPaymentForm] = useState({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago" });
   const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
@@ -473,35 +491,24 @@ export default function Home() {
             <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div
                 ref={clientTableScrollRef}
-                className={`w-full overflow-x-auto overscroll-x-contain cursor-auto [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : ""}`}
+                className={`w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : isOverClientTableText ? "cursor-text" : "cursor-grab"}`}
                 style={{ touchAction: "pan-y" }}
                 onPointerDown={(event) => {
                   if (event.pointerType !== "mouse" || event.button !== 0) return;
                   const target = event.target as HTMLElement;
                   if (target.closest("button, a, input, select, textarea")) return;
                   const cell = target.closest("td, th");
-                  if (cell) {
-                    const docWithCaret = document as Document & {
-                      caretRangeFromPoint?: (x: number, y: number) => Range | null;
-                    };
-                    const caretRange = docWithCaret.caretRangeFromPoint?.(event.clientX, event.clientY);
-                    const caretNode = caretRange?.startContainer;
-                    const overTextAtPoint = !!caretNode && cell.contains(caretNode) &&
-                      (caretNode.nodeType === Node.TEXT_NODE || !!caretNode.parentElement?.closest("span, strong, em, b, i"));
-                    if (overTextAtPoint) return;
-                    const textRange = document.createRange();
-                    textRange.selectNodeContents(cell);
-                    const overTextByBounds = Array.from(textRange.getClientRects()).some((rect) =>
-                      event.clientX >= rect.left && event.clientX <= rect.right &&
-                      event.clientY >= rect.top && event.clientY <= rect.bottom
-                    );
-                    if (overTextByBounds) return;
-                  }
+                  if (cell && isPointOverClientText(cell, event.clientX, event.clientY)) return;
                   clientTableDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false };
                 }}
                 onPointerMove={(event) => {
                   const drag = clientTableDragRef.current;
-                  if (!drag || drag.pointerId !== event.pointerId) return;
+                  if (!drag || drag.pointerId !== event.pointerId) {
+                    const target = event.target as HTMLElement;
+                    const cell = target.closest("td, th");
+                    setIsOverClientTableText(!!cell && isPointOverClientText(cell, event.clientX, event.clientY));
+                    return;
+                  }
                   const delta = event.clientX - drag.startX;
                   if (!drag.moved && Math.abs(delta) > 6) {
                     drag.moved = true;
