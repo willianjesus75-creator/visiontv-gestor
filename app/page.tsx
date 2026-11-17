@@ -494,7 +494,7 @@ export default function Home() {
                 className={`w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] ${isDraggingClientTable ? "cursor-grabbing" : isOverClientTableText ? "cursor-text" : "cursor-grab"}`}
                 style={{ touchAction: "pan-y" }}
                 onPointerDown={(event) => {
-                  if (event.pointerType !== "mouse" || event.button !== 0) return;
+                  if (event.pointerType === "mouse" && event.button !== 0) return;
                   const target = event.target as HTMLElement;
                   if (target.closest("button, a, input, select, textarea")) return;
                   const cell = target.closest("td, th");
