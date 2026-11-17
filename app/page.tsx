@@ -506,7 +506,7 @@ export default function Home() {
                   if (!drag || drag.pointerId !== event.pointerId) {
                     const target = event.target as HTMLElement;
                     const cell = target.closest("td, th");
-                    setIsOverClientTableText(!!cell && isPointOverClientText(cell, event.clientX, event.clientY));
+                    setIsOverClientTableText(!!cell && isPointOverClientText(cell as HTMLElement, event.clientX, event.clientY));
                     return;
                   }
                   const delta = event.clientX - drag.startX;
