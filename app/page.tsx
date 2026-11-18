@@ -554,7 +554,8 @@ export default function Home() {
                 onPointerCancel={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
                 onLostPointerCapture={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
               >
-                <table className="w-full min-w-[1120px] table-fixed text-center text-sm">
+                <table className="w-full min-w-[1200px] table-fixed text-center text-sm">
+                  <colgroup><col style={{width:"18%"}}/><col style={{width:"10%"}}/><col style={{width:"7%"}}/><col style={{width:"12%"}}/><col style={{width:"18%"}}/><col style={{width:"9%"}}/><col style={{width:"10%"}}/><col style={{width:"8%"}}/><col style={{width:"8%"}}/></colgroup>
                   <thead className="bg-gradient-to-r from-[#7f1021] to-[#a51028] text-[13px] font-bold uppercase tracking-wide text-white">
                     <tr>
                       <th className="w-[18%] px-3 py-3 text-left">Cliente</th><th className="w-[10%] px-3 py-3">Plano</th><th className="w-[7%] px-3 py-3">Acesso</th><th className="w-[12%] px-3 py-3">Servidor</th><th className="w-[18%] px-3 py-3 text-left">Aplicativo</th><th className="w-[9%] px-3 py-3">Valor</th><th className="w-[10%] px-3 py-3">Vencimento</th><th className="w-[8%] px-3 py-3">Status</th><th className="w-[8%] px-3 py-3">Ações</th>
