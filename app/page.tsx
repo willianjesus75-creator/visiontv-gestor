@@ -394,7 +394,8 @@ export default function Home() {
     const [year, month] = (sub.recebido_em || "").slice(0,10).split("-");
     return year === clientReceivedYear && (clientReceivedMode === "anual" || month === clientReceivedMonth);
   }).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
-  const clientReceiptYears = Array.from(new Set([String(new Date().getFullYear()), ...confirmedClientReceipts.map(sub => (sub.recebido_em || "").slice(0,4)).filter(Boolean)])).sort((a,b)=>Number(b)-Number(a));
+  const currentReceiptYear = new Date().getFullYear();
+  const clientReceiptYears = Array.from(new Set([...Array.from({length: 16}, (_, i) => String(currentReceiptYear + 10 - i)), ...confirmedClientReceipts.map(sub => (sub.recebido_em || "").slice(0,4)).filter(Boolean)])).sort((a,b)=>Number(b)-Number(a));
   const companyPayments = payments.filter((p) => p.empresa_id === companyId);
   const companyExpenses = expenses.filter((e) => e.empresa_id === companyId);
   const inDateRange = (date: string | null | undefined, from = appliedDateFrom, to = appliedDateTo) => !!date && date >= from && date <= to;
