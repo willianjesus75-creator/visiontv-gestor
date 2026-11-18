@@ -27,7 +27,7 @@ type Expense = {
 type Subscription = {
   id: string; cliente_id: string; nome_plano: string; quantidade_telas: number;
   valor: number; periodicidade: string; data_vencimento: string; status: string;
-  cobranca_status: "recebido" | "em_aberto"; recebido_em: string | null;
+  cobranca_status: "pago" | "recebido" | "em_aberto"; recebido_em: string | null;
 };
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -227,14 +227,23 @@ export default function Home() {
     if (error) setError(error.message);
     else {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
+        const currentSub = subscriptions.find(x => x.cliente_id === data.id);
+        const isNewActivation = !currentSub;
+        const isRenewalOrPlanChange = !!currentSub && (
+          currentSub.data_vencimento !== clientForm.vencimento ||
+          currentSub.nome_plano !== clientForm.plano ||
+          Number(currentSub.valor) !== Number(clientForm.valor) ||
+          Number(currentSub.quantidade_telas) !== Number(clientForm.telas) ||
+          currentSub.periodicidade !== clientForm.periodicidade
+        );
         const subscriptionPayload = {
           owner_id: user.id, empresa_id: companyId, cliente_id: data.id,
           nome_plano: clientForm.plano, quantidade_telas: Number(clientForm.telas),
           valor: Number(clientForm.valor), periodicidade: clientForm.periodicidade,
           data_inicio: today(), data_vencimento: clientForm.vencimento,
-          status: "ativa"
+          status: "ativa",
+          ...((isNewActivation || isRenewalOrPlanChange) ? { cobranca_status: "pago", recebido_em: today() } : {})
         };
-        const currentSub = subscriptions.find(x => x.cliente_id === data.id);
         const { error: subError } = currentSub
           ? await supabase.from("assinaturas").update(subscriptionPayload).eq("id", currentSub.id)
           : await supabase.from("assinaturas").insert(subscriptionPayload);
@@ -303,7 +312,7 @@ export default function Home() {
     base.setDate(base.getDate() + 30);
     const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
     setBusy(true); setError("");
-    const { error: subscriptionError } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa",cobranca_status:"em_aberto",recebido_em:null}).eq("id",sub.id);
+    const { error: subscriptionError } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa",cobranca_status:"pago",recebido_em:today()}).eq("id",sub.id);
     if (subscriptionError) { setError(subscriptionError.message); setBusy(false); return; }
     if (client.arquivado_em) {
       const { error: clientError } = await supabase.from("clientes").update({arquivado_em:null,status:"ativo"}).eq("id",client.id);
