@@ -434,13 +434,7 @@ export default function Home() {
   const financeEntries = [
     ...(financeFilter !== "despesas" ? periodPaymentsList.map(item => ({ ...item, entryType: "recebimento" as const })) : []),
     ...(financeFilter !== "recebimentos" ? periodExpensesList.map(item => ({ ...item, entryType: "despesa" as const })) : [])
-  ].sort((a,b) => (b.created_at || "").localeCompare(a.created_at || ""));
-  const financeDateGroups = financeEntries.reduce((groups, entry) => {
-    const date = entry.data_pagamento || entry.created_at?.slice(0, 10) || "sem-data";
-    const existing = groups.find(group => group.date === date);
-    if (existing) existing.entries.push(entry); else groups.push({ date, entries: [entry] });
-    return groups;
-  }, [] as { date: string; entries: typeof financeEntries }[]).sort((a, b) => b.date.localeCompare(a.date));
+  ].sort((a,b) => (b.data_pagamento || b.created_at?.slice(0,10) || b.data_vencimento || "").localeCompare(a.data_pagamento || a.created_at?.slice(0,10) || a.data_vencimento || "") || (b.created_at || "").localeCompare(a.created_at || ""));
   const upcoming = subscriptions.filter((s) => clients.some((c) => c.id === s.cliente_id && c.empresa_id === companyId) && s.status === "ativa").sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento)).slice(0, 6);
 
   if (loading) return <main className="min-h-screen grid place-items-center text-slate-400">Carregando VisionTV Gestor...</main>;
@@ -714,7 +708,7 @@ export default function Home() {
                     <th className="whitespace-nowrap px-3 py-4 text-center align-middle">Tipo</th><th className="whitespace-nowrap px-3 py-4 text-left align-middle">Descrição</th><th className="whitespace-nowrap px-3 py-4 text-left align-middle">Categoria</th><th className="whitespace-nowrap px-3 py-4 text-center align-middle">Valor</th><th className="whitespace-nowrap px-3 py-4 text-center align-middle">Vencimento</th><th className="whitespace-nowrap px-3 py-4 text-center align-middle">Recebido / pago em</th><th className="whitespace-nowrap px-3 py-4 text-center align-middle">Forma</th><th className="whitespace-nowrap px-3 py-4 text-center align-middle">Status</th><th className="whitespace-nowrap px-3 py-4 text-center align-middle">Ações</th>
                   </tr></thead>
                   <tbody>
-                    {financeDateGroups.map(group=><React.Fragment key={group.date}><tr className="border-y border-[#3b5274] bg-gradient-to-r from-[#1b2d44] to-[#142238]"><td colSpan={9} className="px-4 py-3 text-sm font-bold tracking-wide text-sky-100"><span className="mr-2 text-sky-300">▦</span>{group.date==="sem-data"?"Data não informada":formatDate(group.date)} <span className="ml-2 text-xs font-medium text-slate-400">({group.entries.length} {group.entries.length===1?"lançamento":"lançamentos"})</span></td></tr>{group.entries.map(entry=>entry.entryType==="recebimento" ? <tr key={`recebimento-${entry.id}`} className="border-t border-white/10 hover:bg-white/[0.03]">
+                    {financeEntries.map(entry=>entry.entryType==="recebimento" ? <tr key={`recebimento-${entry.id}`} className="border-t border-white/10 hover:bg-white/[0.03]">
                       <td className="px-3 py-4 text-center align-middle"><span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">Recebimento</span></td>
                       <td className="px-3 py-4 text-left align-middle"><div>{entry.descricao||"Recebimento"}</div>{entry.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {entry.observacoes}</div>}</td>
                       <td className="px-3 py-4 text-left align-middle">{entry.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-emerald-300">{money(entry.valor)}</td>
@@ -728,7 +722,7 @@ export default function Home() {
                       <td className="px-3 py-4 text-center align-middle">{entry.data_vencimento ? formatDate(entry.data_vencimento) : ""}</td><td className="px-3 py-4 text-center align-middle">{formatDate(entry.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{entry.forma_pagamento||"—"}</td>
                       <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${entry.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{entry.status==="pago"?"Pago":"Pendente"}</span></td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5"><button title="Editar" onClick={()=>{setEditingExpense(entry.id);setExpenseForm({descricao:entry.descricao,categoria:entry.categoria||"",valor:String(entry.valor),data_vencimento:entry.data_vencimento||"",data_pagamento:entry.data_pagamento||"",forma_pagamento:entry.forma_pagamento||"pix",status:entry.status,observacoes:entry.observacoes||""});setShowExpenseForm(true);setShowPaymentForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button><button title="Excluir" onClick={()=>void deleteFinance("despesas",entry.id)} className="rounded-md border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"><Trash2 size={14}/></button></div></td>
-                    </tr>)}</React.Fragment>)}
+                    </tr>)}
                     {!financeEntries.length&&<tr><td colSpan={9} className="p-8 text-center text-slate-400">Nenhuma movimentação encontrada neste filtro.</td></tr>}
                   </tbody>
                 </table>
