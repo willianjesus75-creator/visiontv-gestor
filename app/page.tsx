@@ -81,8 +81,8 @@ export default function Home() {
   const [isDraggingClientTable, setIsDraggingClientTable] = useState(false);
   const [isOverClientTableText, setIsOverClientTableText] = useState(false);
   const [clientForm, setClientForm] = useState({ nome: "", indicacao: "", mac: "", servidor: "", aplicativo: "", valor_aplicativo: "", chave: "", tv: "", observacoes: "", app_vencimento: "", app_vencimento2: "", status: "ativo", plano: "", telas: "1", valor: "", periodicidade: "mensal", vencimento: "" });
-  const [paymentForm, setPaymentForm] = useState({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago", observacoes: "" });
-  const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
+  const [paymentForm, setPaymentForm] = useState({ categoria: "", descricao: "", valor: "", data_vencimento: "", data_pagamento: today(), forma_pagamento: "pix", status: "pago", observacoes: "" });
+  const [expenseForm, setExpenseForm] = useState({ descricao: "", categoria: "", valor: "", data_vencimento: "", data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
   const [showClientForm, setShowClientForm] = useState(false);
   const [editingClient, setEditingClient] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -267,12 +267,12 @@ export default function Home() {
     if (!Number.isFinite(amount) || amount <= 0) { setError("Informe um valor válido para o recebimento."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      const payload = { owner_id: user.id, empresa_id: companyId, categoria: paymentForm.categoria.trim() || null, valor: amount, descricao: paymentForm.descricao.trim() || "Recebimento", data_vencimento: paymentForm.data_vencimento || today(), data_pagamento: paymentForm.status === "pago" ? (paymentForm.data_pagamento || today()) : null, forma_pagamento: paymentForm.forma_pagamento, status: paymentForm.status, observacoes: paymentForm.observacoes.trim() || null };
+      const payload = { owner_id: user.id, empresa_id: companyId, categoria: paymentForm.categoria.trim() || null, valor: amount, descricao: paymentForm.descricao.trim() || "Recebimento", data_vencimento: paymentForm.data_vencimento || null, data_pagamento: paymentForm.status === "pago" ? (paymentForm.data_pagamento || today()) : null, forma_pagamento: paymentForm.forma_pagamento, status: paymentForm.status, observacoes: paymentForm.observacoes.trim() || null };
       const request = editingPayment ? supabase.from("pagamentos").update(payload).eq("id", editingPayment) : supabase.from("pagamentos").insert(payload);
       const { data, error } = await request.select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").single();
       if (error) throw error;
       setPayments((old) => editingPayment ? old.map(x => x.id === editingPayment ? data as Payment : x) : [data as Payment, ...old]);
-      setPaymentForm({ categoria: "", descricao: "", valor: "", data_vencimento: today(), data_pagamento: today(), forma_pagamento: "pix", status: "pago", observacoes: "" });
+      setPaymentForm({ categoria: "", descricao: "", valor: "", data_vencimento: "", data_pagamento: today(), forma_pagamento: "pix", status: "pago", observacoes: "" });
       setShowPaymentForm(false); setNotice(editingPayment ? "Recebimento atualizado." : "Recebimento registrado com sucesso."); setEditingPayment(null);
       await loadData();
     } catch (err) { setError("Não foi possível salvar o recebimento: " + (err instanceof Error ? err.message : "erro inesperado")); }
@@ -288,12 +288,12 @@ export default function Home() {
     if (!expenseForm.categoria.trim()) { setError("Informe a categoria da despesa."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      const payload = { owner_id: user.id, empresa_id: companyId, descricao: expenseForm.descricao.trim(), categoria: expenseForm.categoria.trim(), valor: amount, data_vencimento: expenseForm.data_vencimento || today(), data_pagamento: expenseForm.status === "pago" ? (expenseForm.data_pagamento || today()) : null, forma_pagamento: expenseForm.forma_pagamento, status: expenseForm.status, observacoes: expenseForm.observacoes.trim() || null };
+      const payload = { owner_id: user.id, empresa_id: companyId, descricao: expenseForm.descricao.trim(), categoria: expenseForm.categoria.trim(), valor: amount, data_vencimento: expenseForm.data_vencimento || null, data_pagamento: expenseForm.status === "pago" ? (expenseForm.data_pagamento || today()) : null, forma_pagamento: expenseForm.forma_pagamento, status: expenseForm.status, observacoes: expenseForm.observacoes.trim() || null };
       const request = editingExpense ? supabase.from("despesas").update(payload).eq("id", editingExpense) : supabase.from("despesas").insert(payload);
       const { data, error } = await request.select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").single();
       if (error) throw error;
       setExpenses((old) => editingExpense ? old.map(x => x.id === editingExpense ? data as Expense : x) : [data as Expense, ...old]);
-      setExpenseForm({ descricao: "", categoria: "", valor: "", data_vencimento: today(), data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
+      setExpenseForm({ descricao: "", categoria: "", valor: "", data_vencimento: "", data_pagamento: "", forma_pagamento: "pix", status: "pendente", observacoes: "" });
       setShowExpenseForm(false); setNotice(editingExpense ? "Despesa atualizada." : "Despesa registrada com sucesso."); setEditingExpense(null);
       await loadData();
     } catch (err) { setError("Não foi possível salvar a despesa: " + (err instanceof Error ? err.message : "erro inesperado")); }
@@ -704,20 +704,20 @@ export default function Home() {
                     {periodPaymentsList.map(p=><tr key={`recebimento-${p.id}`} className="border-t border-white/10 hover:bg-white/[0.03]">
                       <td className="px-3 py-4 text-center align-middle"><span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">Recebimento</span></td>
                       <td className="px-3 py-4 text-left align-middle"><div>{p.descricao||"Recebimento"}</div>{p.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {p.observacoes}</div>}</td><td className="px-3 py-4 text-left align-middle">{p.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-emerald-300">{money(p.valor)}</td>
-                      <td className="px-3 py-4 text-center align-middle">{formatDate(p.data_vencimento)}</td><td className="px-3 py-4 text-center align-middle">{formatDate(p.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{p.forma_pagamento||"—"}</td>
+                      <td className="px-3 py-4 text-center align-middle">{p.data_vencimento ? formatDate(p.data_vencimento) : ""}</td><td className="px-3 py-4 text-center align-middle">{formatDate(p.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{p.forma_pagamento||"—"}</td>
                       <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${p.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{p.status==="pago"?"Recebido":"Pendente"}</span></td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5">
-                        <button title="Editar" onClick={()=>{setEditingPayment(p.id);setPaymentForm({descricao:p.descricao||"",categoria:p.categoria||"",valor:String(p.valor),data_vencimento:p.data_vencimento||today(),data_pagamento:p.data_pagamento||today(),forma_pagamento:p.forma_pagamento||"pix",status:p.status,observacoes:p.observacoes||""});setShowPaymentForm(true);setShowExpenseForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button>
+                        <button title="Editar" onClick={()=>{setEditingPayment(p.id);setPaymentForm({descricao:p.descricao||"",categoria:p.categoria||"",valor:String(p.valor),data_vencimento:p.data_vencimento||"",data_pagamento:p.data_pagamento||today(),forma_pagamento:p.forma_pagamento||"pix",status:p.status,observacoes:p.observacoes||""});setShowPaymentForm(true);setShowExpenseForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button>
                         <button title="Excluir" onClick={()=>void deleteFinance("pagamentos",p.id)} className="rounded-md border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"><Trash2 size={14}/></button>
                       </div></td>
                     </tr>)}
                     {periodExpensesList.map(e=><tr key={`despesa-${e.id}`} className="border-t border-white/10 hover:bg-white/[0.03]">
                       <td className="px-3 py-4 text-center align-middle"><span className="rounded-full bg-rose-500/10 px-2 py-1 text-[11px] font-semibold text-rose-300">Despesa</span></td>
                       <td className="px-3 py-4 text-left align-middle"><div>{e.descricao}</div>{e.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {e.observacoes}</div>}</td><td className="px-3 py-4 text-left align-middle">{e.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-rose-300">{money(e.valor)}</td>
-                      <td className="px-3 py-4 text-center align-middle">{formatDate(e.data_vencimento)}</td><td className="px-3 py-4 text-center align-middle">{formatDate(e.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{e.forma_pagamento||"—"}</td>
+                      <td className="px-3 py-4 text-center align-middle">{e.data_vencimento ? formatDate(e.data_vencimento) : ""}</td><td className="px-3 py-4 text-center align-middle">{formatDate(e.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{e.forma_pagamento||"—"}</td>
                       <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${e.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{e.status==="pago"?"Pago":"Pendente"}</span></td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5">
-                        <button title="Editar" onClick={()=>{setEditingExpense(e.id);setExpenseForm({descricao:e.descricao,categoria:e.categoria||"",valor:String(e.valor),data_vencimento:e.data_vencimento||today(),data_pagamento:e.data_pagamento||"",forma_pagamento:e.forma_pagamento||"pix",status:e.status,observacoes:e.observacoes||""});setShowExpenseForm(true);setShowPaymentForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button>
+                        <button title="Editar" onClick={()=>{setEditingExpense(e.id);setExpenseForm({descricao:e.descricao,categoria:e.categoria||"",valor:String(e.valor),data_vencimento:e.data_vencimento||"",data_pagamento:e.data_pagamento||"",forma_pagamento:e.forma_pagamento||"pix",status:e.status,observacoes:e.observacoes||""});setShowExpenseForm(true);setShowPaymentForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button>
                         <button title="Excluir" onClick={()=>void deleteFinance("despesas",e.id)} className="rounded-md border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"><Trash2 size={14}/></button>
                       </div></td>
                     </tr>)}
