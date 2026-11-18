@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import {
-  Activity, Building2, CalendarDays, CreditCard, LayoutDashboard,
+  Activity, AlertTriangle, Archive, Building2, CalendarDays, CheckCircle2, CreditCard, LayoutDashboard,
   LogOut, Menu, Plus, RefreshCw, Search, Trash2, Users, Wallet,
-  X, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, Pencil
+  X, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, Pencil, Grid2X2, List, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 
 type Company = { id: string; nome: string; tipo?: string | null };
@@ -87,6 +87,10 @@ export default function Home() {
   const [dueFrom, setDueFrom] = useState("");
   const [dueTo, setDueTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [clientPage, setClientPage] = useState(1);
+  const [clientPageSize, setClientPageSize] = useState(10);
+  const [clientView, setClientView] = useState<"list" | "grid">("list");
+  const [clientSort, setClientSort] = useState("due");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingPayment, setEditingPayment] = useState<string | null>(null);
@@ -334,6 +338,24 @@ export default function Home() {
       return a.nome.localeCompare(b.nome, "pt-BR");
     });
   }, [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter, dueFrom, dueTo]);
+  const clientStatusCounts = useMemo(() => {
+    const base = clients.filter(c => c.empresa_id === companyId);
+    const daysFor = (c: Client) => { const s = subscriptions.filter(x=>x.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0]; return s ? Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null; };
+    return { total:base.length, archived:base.filter(c=>!!c.arquivado_em).length, due:base.filter(c=>!c.arquivado_em&&daysFor(c)!==null&&daysFor(c)!>=0&&daysFor(c)!<=7).length, overdue:base.filter(c=>!c.arquivado_em&&daysFor(c)!==null&&daysFor(c)!<0).length, active:base.filter(c=>!c.arquivado_em&&(daysFor(c)===null||daysFor(c)!>7)).length };
+  }, [clients, subscriptions, companyId]);
+  const clientPercent = (n:number) => clientStatusCounts.total ? (n/clientStatusCounts.total*100).toFixed(1).replace(".",",")+"%" : "0,0%";
+  const pagedClients = useMemo(() => {
+    const rows = [...filteredClients];
+    if (clientSort === "name") rows.sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+    else if (clientSort === "due") rows.sort((a,b)=>{
+      const da=subscriptions.filter(s=>s.cliente_id===a.id).map(s=>s.data_vencimento).sort().at(-1)??"9999-12-31";
+      const db=subscriptions.filter(s=>s.cliente_id===b.id).map(s=>s.data_vencimento).sort().at(-1)??"9999-12-31";
+      return da.localeCompare(db);
+    });
+    const start=(clientPage-1)*clientPageSize;
+    return rows.slice(start,start+clientPageSize);
+  }, [filteredClients, subscriptions, clientPage, clientPageSize, clientSort]);
+  const clientPageCount = Math.max(1,Math.ceil(filteredClients.length/clientPageSize));
   const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
   const monthlyRegistered = clientSubscriptions.reduce((sum, sub) => sum + Number(sub.valor || 0) / (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1), 0);
   // Assinaturas ativas e ainda dentro do prazo contam como recebidas.
@@ -460,36 +482,32 @@ export default function Home() {
             </div>
           </>}
           {tab==="clientes" && <>
-            <div className="relative overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#14243a] via-[#101c2e] to-[#0a1220] p-5 shadow-xl shadow-black/20"><div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#ed1c35]/10 blur-3xl"/><div className="relative flex flex-col gap-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+                <article className="rounded-2xl border border-blue-500/70 bg-gradient-to-br from-blue-950/90 to-slate-950 p-4"><div className="flex items-center gap-3"><Users className="text-blue-300" size={26}/><div><p className="text-xs text-slate-300">Total de Clientes</p><p className="text-3xl font-extrabold text-white">{clientStatusCounts.total}</p></div></div></article>
+                <article className="rounded-2xl border border-emerald-500/70 bg-gradient-to-br from-emerald-950/80 to-slate-950 p-4"><div className="flex items-center gap-3"><CheckCircle2 className="text-emerald-300" size={28}/><div><p className="text-xs text-slate-200">Em Dia</p><p className="flex items-baseline gap-3 text-3xl font-extrabold text-white">{clientStatusCounts.active}<span className="text-xs font-semibold text-emerald-300">{clientPercent(clientStatusCounts.active)}</span></p></div></div></article>
+                <article className="rounded-2xl border border-amber-400/70 bg-gradient-to-br from-amber-950/80 to-slate-950 p-4"><div className="flex items-center gap-3"><CalendarDays className="text-amber-300" size={28}/><div><p className="text-xs text-slate-200">Vencendo (7 dias)</p><p className="flex items-baseline gap-3 text-3xl font-extrabold text-white">{String(clientStatusCounts.due).padStart(2,"0")}<span className="text-xs font-semibold text-amber-300">{clientPercent(clientStatusCounts.due)}</span></p></div></div></article>
+                <article className="rounded-2xl border border-rose-500/70 bg-gradient-to-br from-rose-950/80 to-slate-950 p-4"><div className="flex items-center gap-3"><AlertTriangle className="text-rose-300" size={28}/><div><p className="text-xs text-slate-200">Vencidos</p><p className="flex items-baseline gap-3 text-3xl font-extrabold text-white">{clientStatusCounts.overdue}<span className="text-xs font-semibold text-rose-300">{clientPercent(clientStatusCounts.overdue)}</span></p></div></div></article>
+                <article className="rounded-2xl border border-slate-500/70 bg-gradient-to-br from-slate-800/80 to-slate-950 p-4"><div className="flex items-center gap-3"><Archive className="text-slate-200" size={28}/><div><p className="text-xs text-slate-200">Arquivados</p><p className="text-3xl font-extrabold text-white">{String(clientStatusCounts.archived).padStart(2,"0")}</p></div></div></article>
+              </div>
+              <div className="flex flex-col gap-2 xl:flex-row">
+                <div className="relative min-w-0 flex-1"><Search size={18} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e=>{setSearch(e.target.value);setClientPage(1)}} placeholder="Buscar cliente por nome..." className={inputClass+" rounded-xl border-[#344b68] bg-[#091525]/90 py-3 pl-10"}/></div>
+                <select value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setClientPage(1)}} className={inputClass+" xl:w-44"}><option value="todos">Todos os Status</option><option value="ativo">Em Dia</option><option value="proximo">Vencendo</option><option value="vencido">Vencidos</option><option value="arquivado">Arquivados</option><option value="sem_assinatura">Sem assinatura</option></select>
+                <select value={clientSort} onChange={e=>setClientSort(e.target.value)} className={inputClass+" xl:w-52"}><option value="due">Prioridade (Vencimento)</option><option value="name">Ordem alfabética</option></select>
+                <div className="flex gap-1 rounded-xl border border-[#344b68] bg-[#0b192b] p-1"><button title="Visualização em cartões" onClick={()=>setClientView("grid")} className={`rounded-lg p-2 ${clientView==="grid"?"bg-rose-600 text-white":"text-slate-400"}`}><Grid2X2 size={18}/></button><button title="Visualização em lista" onClick={()=>setClientView("list")} className={`rounded-lg p-2 ${clientView==="list"?"bg-rose-600 text-white":"text-slate-400"}`}><List size={18}/></button></div>
+                <button title="Atualizar lista" onClick={()=>void loadData()} className="rounded-xl border border-blue-400/60 bg-blue-500/10 px-3 text-blue-200"><RefreshCw size={18}/></button>
+                <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",indicacao:"",mac:"",servidor:"",aplicativo:"",valor_aplicativo:"",chave:"",tv:"",observacoes:"",app_vencimento:"",app_vencimento2:"",status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-5 py-3 text-sm font-bold text-white"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {[
-                  {id:"todos",label:"Todos",count:clients.filter(x=>x.empresa_id===companyId).length,style:"border-rose-500 bg-rose-500/15 text-rose-200"},
-                  {id:"proximo",label:"Vencendo",count:clients.filter(x=>{const s=subscriptions.filter(y=>y.cliente_id===x.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return x.empresa_id===companyId&&!x.arquivado_em&&!!s&&s.data_vencimento>=today()&&Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000)<=7}).length,style:"border-amber-500/60 bg-amber-500/10 text-amber-200"},
-                  {id:"ativo",label:"Em dia",count:clients.filter(x=>{const s=subscriptions.filter(y=>y.cliente_id===x.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const d=s?Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;return x.empresa_id===companyId&&!x.arquivado_em&&(d===null||d>7)}).length,style:"border-emerald-500/60 bg-emerald-500/10 text-emerald-200"},
-                  {id:"vencido",label:"Vencidos",count:clients.filter(x=>{const s=subscriptions.filter(y=>y.cliente_id===x.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const d=s?Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;return x.empresa_id===companyId&&!x.arquivado_em&&d!==null&&d<0}).length,style:"border-rose-500/60 bg-rose-500/10 text-rose-200"},
-                  {id:"arquivado",label:"Arquivados",count:clients.filter(x=>x.empresa_id===companyId&&!!x.arquivado_em).length,style:"border-slate-500/60 bg-slate-500/10 text-slate-200"}
-                ].map(item=><button key={item.id} type="button" onClick={()=>setStatusFilter(item.id)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${statusFilter===item.id?item.style+" ring-1 ring-white/20":"border-[#344b68] bg-[#0b192b] text-slate-400 hover:bg-white/5"}`}>{item.label} ({item.count})</button>)}
+                {[{id:"todos",label:"Todos",count:clientStatusCounts.total,cls:"border-rose-500 bg-gradient-to-r from-rose-600 to-red-700 text-white"},{id:"proximo",label:"Vencendo",count:clientStatusCounts.due,cls:"border-amber-500/70 bg-amber-500/10 text-amber-200"},{id:"ativo",label:"Em Dia",count:clientStatusCounts.active,cls:"border-emerald-500/70 bg-emerald-500/10 text-emerald-200"},{id:"vencido",label:"Vencidos",count:clientStatusCounts.overdue,cls:"border-rose-500/70 bg-rose-500/10 text-rose-200"},{id:"arquivado",label:"Arquivados",count:clientStatusCounts.archived,cls:"border-slate-500/70 bg-slate-500/10 text-slate-200"}].map(x=><button key={x.id} onClick={()=>{setStatusFilter(x.id);setClientPage(1)}} className={`rounded-xl border px-3 py-3 text-sm font-bold ${statusFilter===x.id?x.cls:"border-[#344b68] bg-[#0b192b] text-slate-400"}`}>{x.label} ({x.count})</button>)}
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative min-w-0 flex-1"><Search size={18} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente por nome ou MAC" className={inputClass+" pl-10 rounded-xl border-[#344b68] bg-[#091525]/80 py-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"}/></div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={()=>setShowFilters(v=>!v)} aria-expanded={showFilters} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${showFilters?"border-rose-500 bg-[#ed1c35]/15 text-rose-200":"border-[#344b68] bg-[#0b192b] text-slate-200 hover:border-slate-500 hover:bg-[#172943]"}`}><SlidersHorizontal size={17}/> Filtros <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-xs">{[statusFilter!=="todos",appFilter!=="todos",planFilter!=="todos",!!dueFrom,!!dueTo].filter(Boolean).length}</span></button>
-                  <button onClick={()=>{setEditingClient(null);setClientForm({nome:"",indicacao:"",mac:"",servidor:"",aplicativo:"",valor_aplicativo:"",chave:"",tv:"",observacoes:"",app_vencimento:"",app_vencimento2:"",status:"ativo",plano:"",telas:"1",valor:"",periodicidade:"mensal",vencimento:""});setShowClientForm(true)}} disabled={!companyId} className="rounded-xl bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition hover:-translate-y-0.5 hover:shadow-rose-900/40 disabled:opacity-50"><Plus size={16} className="mr-1 inline"/> Novo cliente</button>
-                </div>
-              </div>
-              {showFilters && <div className="space-y-3 border-t border-line pt-3">
-                <div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wider text-muted">Filtrar clientes</p><button type="button" onClick={()=>{setStatusFilter("todos");setAppFilter("todos");setPlanFilter("todos");setDueFrom("");setDueTo("");}} className="text-xs font-semibold text-rose-300 hover:text-rose-200">Limpar filtros</button></div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  <label className="block space-y-1.5 text-xs text-muted">Status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="arquivado">Arquivados</option><option value="sem_assinatura">Sem assinatura</option></select></label>
-                  <label className="block space-y-1.5 text-xs text-muted">Aplicativo<select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.filter(c=>c.empresa_id===companyId).map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select></label>
-                  <label className="block space-y-1.5 text-xs text-muted">Período<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todas</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
-                  <label className="block space-y-1.5 text-xs text-muted">Vencimento a partir de<input type="date" value={dueFrom} onChange={e=>setDueFrom(e.target.value)} className={inputClass}/></label>
-                  <label className="block space-y-1.5 text-xs text-muted">Vencimento até<input type="date" value={dueTo} min={dueFrom || undefined} onChange={e=>setDueTo(e.target.value)} className={inputClass}/></label>
-                </div>
+              {showFilters&&<div className="grid gap-3 rounded-xl border border-[#344b68] bg-[#0b192b] p-4 sm:grid-cols-2 xl:grid-cols-4">
+                <label className="text-xs text-slate-400">Aplicativo<select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass}><option value="todos">Todos</option>{Array.from(new Set(clients.filter(x=>x.empresa_id===companyId).map(x=>x.aplicativo).filter(Boolean))).map(x=><option key={x} value={x??""}>{x}</option>)}</select></label>
+                <label className="text-xs text-slate-400">Plano<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todos</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
+                <label className="text-xs text-slate-400">Vencimento a partir de<input type="date" value={dueFrom} onChange={e=>setDueFrom(e.target.value)} className={inputClass}/></label>
+                <label className="text-xs text-slate-400">Vencimento até<input type="date" value={dueTo} min={dueFrom||undefined} onChange={e=>setDueTo(e.target.value)} className={inputClass}/></label>
               </div>}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3"><p className="text-xs text-slate-400">{filteredClients.length} cliente(s) encontrado(s)</p><span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400"/>{clients.filter(c=>c.empresa_id===companyId).length} cadastrados</span></div></div>
             </div>
-
             <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#101e31] to-[#091321] shadow-xl shadow-black/20">
               <div
                 ref={clientTableScrollRef}
@@ -537,13 +555,13 @@ export default function Home() {
                 onLostPointerCapture={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
               >
                 <table className="w-max min-w-full table-auto text-center text-sm">
-                  <thead className="bg-gradient-to-r from-[#1b3555] to-[#14263e] text-[13px] font-bold uppercase tracking-wide text-slate-100">
+                  <thead className="bg-gradient-to-r from-[#7f1021] to-[#a51028] text-[13px] font-bold uppercase tracking-wide text-white">
                     <tr>
-                      <th className="w-[150px] min-w-[150px] px-3 py-3 text-left">Cliente</th><th className="w-[82px] min-w-[82px] px-3 py-3">Indicação</th><th className="w-[170px] min-w-[170px] px-3 py-3">Observação</th><th className="w-[105px] min-w-[105px] px-3 py-3">Plano</th><th className="w-[62px] min-w-[62px] px-3 py-3">Acesso</th><th className="w-[112px] min-w-[112px] px-3 py-3">Servidor</th><th className="w-[162px] min-w-[162px] px-3 py-3 text-left">Aplicativo</th><th className="w-[82px] min-w-[82px] px-3 py-3">Valor</th><th className="w-[82px] min-w-[82px] px-3 py-3">Vencimento</th><th className="w-[105px] min-w-[105px] px-3 py-3">Status</th><th className="w-[112px] min-w-[112px] px-3 py-3">Ações</th>
+                      <th className="min-w-[160px] px-3 py-3 text-left">Cliente</th><th className="min-w-[105px] px-3 py-3">Plano</th><th className="min-w-[70px] px-3 py-3">Acesso</th><th className="min-w-[115px] px-3 py-3">Servidor</th><th className="min-w-[175px] px-3 py-3 text-left">Aplicativo</th><th className="min-w-[100px] px-3 py-3">Valor</th><th className="min-w-[110px] px-3 py-3">Vencimento</th><th className="min-w-[110px] px-3 py-3">Status</th><th className="min-w-[125px] px-3 py-3">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                                        {showClientForm && !editingClient && <tr><td colSpan={11} className="p-4"><form onSubmit={addClient} className="w-full rounded-2xl border border-[#344b68] bg-[#0b192b] p-6 shadow-lg shadow-black/20">
+                                        {showClientForm && !editingClient && <tr><td colSpan={9} className="p-4"><form onSubmit={addClient} className="w-full rounded-2xl border border-[#344b68] bg-[#0b192b] p-6 shadow-lg shadow-black/20">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
                 <div className="lg:col-span-2">{field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} placeholder="Nome completo do cliente" className={inputClass+" min-h-11"}/>)}</div>
                 {field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}
@@ -568,7 +586,7 @@ export default function Home() {
               </div>
               <div className="mt-4 flex gap-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form></td></tr>}
-                    {filteredClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <><tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
+                    {pagedClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <><tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
                       <td className="min-w-[150px] px-3 py-3 text-left align-middle"><div className="whitespace-normal break-words font-semibold leading-6 text-white">{c.nome}</div></td>
                       <td className="min-w-[82px] px-3 py-3 whitespace-normal break-words font-medium text-slate-200">{c.indicacao||"—"}</td>
                       <td className="min-w-[170px] max-w-[340px] px-3 py-3 whitespace-normal break-words text-sm font-normal leading-6 text-slate-200">{c.observacoes||"—"}</td>
@@ -611,6 +629,12 @@ export default function Home() {
                     {!filteredClients.length&&<tr><td colSpan={11} className="p-8 text-center text-muted">Nenhum cliente encontrado nesta empresa.</td></tr>}
                   </tbody>
                 </table>
+              <div className="flex flex-col gap-3 border-t border-[#344b68] bg-[#080e18] p-3 text-xs text-slate-300 sm:flex-row sm:items-center sm:justify-between">
+                <span>Mostrando {filteredClients.length?((clientPage-1)*clientPageSize+1):0} a {Math.min(clientPage*clientPageSize,filteredClients.length)} de {filteredClients.length} clientes</span>
+                <div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-2">Linhas por página:<select value={clientPageSize} onChange={e=>{setClientPageSize(Number(e.target.value));setClientPage(1)}} className="rounded-lg border border-[#344b68] bg-[#111c2c] px-2 py-1.5 text-white"><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option></select></label>
+                  <button disabled={clientPage===1} onClick={()=>setClientPage(1)} className="rounded-lg border border-[#344b68] p-2 disabled:opacity-30"><ChevronsLeft size={15}/></button><button disabled={clientPage===1} onClick={()=>setClientPage(p=>Math.max(1,p-1))} className="rounded-lg border border-[#344b68] p-2 disabled:opacity-30"><ChevronLeft size={15}/></button><span className="px-2">{clientPage} / {clientPageCount}</span><button disabled={clientPage===clientPageCount} onClick={()=>setClientPage(p=>Math.min(clientPageCount,p+1))} className="rounded-lg border border-[#344b68] p-2 disabled:opacity-30"><ChevronRight size={15}/></button><button disabled={clientPage===clientPageCount} onClick={()=>setClientPage(clientPageCount)} className="rounded-lg border border-[#344b68] p-2 disabled:opacity-30"><ChevronsRight size={15}/></button>
+                </div>
+              </div>
               </div>
             </div>
           </>}
