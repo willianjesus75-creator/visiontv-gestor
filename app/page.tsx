@@ -294,14 +294,23 @@ export default function Home() {
     setShowClientForm(true);
   }
   async function renewClient(client: Client) {
-    const sub = subscriptions.find(x => x.cliente_id === client.id);
+    const sub = subscriptions.filter(x => x.cliente_id === client.id).sort((a,b) => b.data_vencimento.localeCompare(a.data_vencimento))[0];
     if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
     const base = new Date(today() + "T12:00:00");
     base.setDate(base.getDate() + 30);
-    const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0"); setBusy(true); setError("");
-    const { error } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
-    if (error) { setError(error.message); setBusy(false); return; }
-    setNotice("Renovação concluída. O próximo vencimento foi definido para 30 dias a partir de hoje."); await loadData(); setBusy(false);
+    const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
+    setBusy(true); setError("");
+    const { error: subscriptionError } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
+    if (subscriptionError) { setError(subscriptionError.message); setBusy(false); return; }
+    if (client.arquivado_em) {
+      const { error: clientError } = await supabase.from("clientes").update({arquivado_em:null,status:"ativo"}).eq("id",client.id);
+      if (clientError) {
+        setError("A assinatura foi renovada, mas não foi possível retirar o cliente dos Arquivados: "+clientError.message);
+        await loadData(); setBusy(false); return;
+      }
+    }
+    setNotice("Renovação concluída. O cliente voltou à lista normal e o próximo vencimento foi definido para 30 dias a partir de hoje.");
+    await loadData(); setBusy(false);
   }
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
