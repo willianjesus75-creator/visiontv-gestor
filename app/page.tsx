@@ -12,7 +12,7 @@ type Company = { id: string; nome: string; tipo?: string | null };
 type Client = {
   id: string; empresa_id: string; nome: string; indicacao: string | null;
   mac: string | null; servidor: string | null; aplicativo: string | null; valor_aplicativo: number | null; chave: string | null; tv: string | null; observacoes: string | null;
-  app_vencimento: string | null; app_vencimento2: string | null; status: string;
+  app_vencimento: string | null; app_vencimento2: string | null; status: string; arquivado_em: string | null;
 };
 type Payment = {
   id: string; empresa_id: string; cliente_id: string | null; categoria: string | null; valor: number;
@@ -139,7 +139,7 @@ export default function Home() {
     setError("");
     const [c, cl, p, e, s] = await Promise.all([
       supabase.from("empresas").select("id,nome,tipo").order("nome"),
-      supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,valor_aplicativo,chave,tv,observacoes,app_vencimento,app_vencimento2,status").order("nome"),
+      supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,valor_aplicativo,chave,tv,observacoes,app_vencimento,app_vencimento2,status,arquivado_em").order("nome"),
       supabase.from("pagamentos").select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao").order("created_at", { ascending: false }),
       supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes").order("created_at", { ascending: false }),
       supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status,cobranca_status,recebido_em").order("data_vencimento")
@@ -311,19 +311,29 @@ export default function Home() {
     else { if (table === "pagamentos") setPayments((old) => old.filter((x) => x.id !== id)); else setExpenses((old) => old.filter((x) => x.id !== id)); setNotice("Lançamento excluído."); }
   }
 
-  const filteredClients = useMemo(() => clients.filter((c) => {
-    const sub = subscriptions.filter(x => x.cliente_id === c.id).sort((a,b) => b.data_vencimento.localeCompare(a.data_vencimento))[0];
-    const days = sub ? Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null;
-    const status = days === null ? "sem_assinatura" : days < 0 ? "vencido" : days === 0 ? "hoje" : days <= 7 ? "proximo" : "ativo";
+  const filteredClients = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return c.empresa_id === companyId
-      && (c.nome.toLowerCase().includes(q) || (c.mac ?? "").toLowerCase().includes(q))
-      && (statusFilter === "todos" || status === statusFilter)
-      && (appFilter === "todos" || c.aplicativo === appFilter)
-      && (planFilter === "todos" || sub?.periodicidade === planFilter)
-      && (!dueFrom || (!!sub && sub.data_vencimento >= dueFrom))
-      && (!dueTo || (!!sub && sub.data_vencimento <= dueTo));
-  }), [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter, dueFrom, dueTo]);
+    const rows = clients.filter((client) => {
+      const sub = subscriptions.filter(x => x.cliente_id === client.id).sort((a,b) => b.data_vencimento.localeCompare(a.data_vencimento))[0];
+      const days = sub ? Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null;
+      const status = client.arquivado_em ? "arquivado" : days === null ? "sem_assinatura" : days < 0 ? "vencido" : days <= 7 ? "proximo" : "ativo";
+      return client.empresa_id === companyId
+        && (client.nome.toLowerCase().includes(q) || (client.mac ?? "").toLowerCase().includes(q))
+        && (statusFilter === "todos" || status === statusFilter || (statusFilter === "ativo" && status === "sem_assinatura"))
+        && (appFilter === "todos" || client.aplicativo === appFilter)
+        && (planFilter === "todos" || sub?.periodicidade === planFilter)
+        && (!dueFrom || (!!sub && sub.data_vencimento >= dueFrom))
+        && (!dueTo || (!!sub && sub.data_vencimento <= dueTo));
+    });
+    return rows.sort((a,b) => {
+      if (statusFilter === "proximo") {
+        const da = subscriptions.filter(x=>x.cliente_id===a.id).map(x=>x.data_vencimento).sort().at(-1) ?? "9999-12-31";
+        const db = subscriptions.filter(x=>x.cliente_id===b.id).map(x=>x.data_vencimento).sort().at(-1) ?? "9999-12-31";
+        if (da !== db) return da.localeCompare(db);
+      }
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    });
+  }, [clients, companyId, search, subscriptions, statusFilter, appFilter, planFilter, dueFrom, dueTo]);
   const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
   const monthlyRegistered = clientSubscriptions.reduce((sum, sub) => sum + Number(sub.valor || 0) / (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1), 0);
   // Assinaturas ativas e ainda dentro do prazo contam como recebidas.
@@ -451,6 +461,15 @@ export default function Home() {
           </>}
           {tab==="clientes" && <>
             <div className="relative overflow-hidden rounded-2xl border border-[#2b3d57] bg-gradient-to-br from-[#14243a] via-[#101c2e] to-[#0a1220] p-5 shadow-xl shadow-black/20"><div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[#ed1c35]/10 blur-3xl"/><div className="relative flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {[
+                  {id:"todos",label:"Todos",count:clients.filter(x=>x.empresa_id===companyId).length,style:"border-rose-500 bg-rose-500/15 text-rose-200"},
+                  {id:"proximo",label:"Vencendo",count:clients.filter(x=>{const s=subscriptions.filter(y=>y.cliente_id===x.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];return x.empresa_id===companyId&&!x.arquivado_em&&!!s&&s.data_vencimento>=today()&&Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000)<=7}).length,style:"border-amber-500/60 bg-amber-500/10 text-amber-200"},
+                  {id:"ativo",label:"Em dia",count:clients.filter(x=>{const s=subscriptions.filter(y=>y.cliente_id===x.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const d=s?Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;return x.empresa_id===companyId&&!x.arquivado_em&&(d===null||d>7)}).length,style:"border-emerald-500/60 bg-emerald-500/10 text-emerald-200"},
+                  {id:"vencido",label:"Vencidos",count:clients.filter(x=>{const s=subscriptions.filter(y=>y.cliente_id===x.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const d=s?Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;return x.empresa_id===companyId&&!x.arquivado_em&&d!==null&&d<0}).length,style:"border-rose-500/60 bg-rose-500/10 text-rose-200"},
+                  {id:"arquivado",label:"Arquivados",count:clients.filter(x=>x.empresa_id===companyId&&!!x.arquivado_em).length,style:"border-slate-500/60 bg-slate-500/10 text-slate-200"}
+                ].map(item=><button key={item.id} type="button" onClick={()=>setStatusFilter(item.id)} className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${statusFilter===item.id?item.style+" ring-1 ring-white/20":"border-[#344b68] bg-[#0b192b] text-slate-400 hover:bg-white/5"}`}>{item.label} ({item.count})</button>)}
+              </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative min-w-0 flex-1"><Search size={18} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente por nome ou MAC" className={inputClass+" pl-10 rounded-xl border-[#344b68] bg-[#091525]/80 py-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"}/></div>
                 <div className="flex gap-2">
@@ -461,7 +480,7 @@ export default function Home() {
               {showFilters && <div className="space-y-3 border-t border-line pt-3">
                 <div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wider text-muted">Filtrar clientes</p><button type="button" onClick={()=>{setStatusFilter("todos");setAppFilter("todos");setPlanFilter("todos");setDueFrom("");setDueTo("");}} className="text-xs font-semibold text-rose-300 hover:text-rose-200">Limpar filtros</button></div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  <label className="block space-y-1.5 text-xs text-muted">Status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="sem_assinatura">Sem assinatura</option></select></label>
+                  <label className="block space-y-1.5 text-xs text-muted">Status<select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className={inputClass}><option value="todos">Todos os status</option><option value="ativo">Ativos</option><option value="proximo">Vencimento próximo</option><option value="hoje">Vence hoje</option><option value="vencido">Vencidos</option><option value="arquivado">Arquivados</option><option value="sem_assinatura">Sem assinatura</option></select></label>
                   <label className="block space-y-1.5 text-xs text-muted">Aplicativo<select value={appFilter} onChange={e=>setAppFilter(e.target.value)} className={inputClass}><option value="todos">Todos aplicativos</option>{Array.from(new Set(clients.filter(c=>c.empresa_id===companyId).map(c=>c.aplicativo).filter(Boolean))).map(a=><option key={a} value={a??""}>{a}</option>)}</select></label>
                   <label className="block space-y-1.5 text-xs text-muted">Período<select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className={inputClass}><option value="todos">Todas</option><option value="mensal">Mensal</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual</option></select></label>
                   <label className="block space-y-1.5 text-xs text-muted">Vencimento a partir de<input type="date" value={dueFrom} onChange={e=>setDueFrom(e.target.value)} className={inputClass}/></label>
