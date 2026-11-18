@@ -374,7 +374,7 @@ export default function Home() {
   // Assinaturas vencidas ou inativas permanecem no valor em aberto.
   const isClientSubscriptionReceived = (sub: Subscription) => sub.status === "ativa" && sub.data_vencimento >= today();
   const clientOpen = clientSubscriptions.filter(sub => !isClientSubscriptionReceived(sub)).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
-  const confirmedClientReceipts = clientSubscriptions.filter(sub => sub.cobranca_status === "pago" && !!sub.recebido_em);
+  const confirmedClientReceipts = clientSubscriptions.filter(sub => (String(sub.cobranca_status) === "recebido" || String(sub.cobranca_status) === "pago") && !!sub.recebido_em);
   const clientReceived = confirmedClientReceipts.filter(sub => {
     if (clientReceivedMode === "todos") return true;
     const [year, month] = (sub.recebido_em || "").slice(0,10).split("-");
