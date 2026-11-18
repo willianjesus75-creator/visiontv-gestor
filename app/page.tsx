@@ -31,7 +31,7 @@ type Subscription = {
 };
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
-const formatDate = (value: string | null) => { if (!value) return "—"; const raw = value.trim().slice(0, 10); const iso = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/); if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`; const br = raw.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/); return br ? raw : value; };
+const formatDate = (value: string | null) => { if (!value) return "—"; const raw = value.trim().slice(0, 10); const parts = raw.split("-"); if (parts.length === 3 && parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`; return raw; };
 const today = () => new Date().toISOString().slice(0, 10);
 const VISIONTV_LOGO = "/visiontv-logo.svg";
 
