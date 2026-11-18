@@ -308,8 +308,14 @@ export default function Home() {
   async function renewClient(client: Client) {
     const sub = subscriptions.filter(x => x.cliente_id === client.id).sort((a,b) => b.data_vencimento.localeCompare(a.data_vencimento))[0];
     if (!sub) { setError("Cadastre uma assinatura antes de renovar."); return; }
-    const base = new Date(today() + "T12:00:00");
-    base.setDate(base.getDate() + 30);
+    const todayDate = new Date(today() + "T12:00:00");
+    const previousDueDate = new Date(sub.data_vencimento + "T12:00:00");
+    const base = previousDueDate > todayDate ? previousDueDate : todayDate;
+    const originalDay = base.getDate();
+    base.setDate(1);
+    base.setMonth(base.getMonth() + 1);
+    const lastDayOfNextMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+    base.setDate(Math.min(originalDay, lastDayOfNextMonth));
     const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
     setBusy(true); setError("");
     const { error: subscriptionError } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa",cobranca_status:"pago",recebido_em:today()}).eq("id",sub.id);
