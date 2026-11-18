@@ -350,7 +350,7 @@ export default function Home() {
   const clientStatusCounts = useMemo(() => {
     const base = clients.filter(c => c.empresa_id === companyId);
     const daysFor = (c: Client) => { const s = subscriptions.filter(x=>x.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0]; return s ? Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null; };
-    return { total:base.length, archived:base.filter(c=>daysFor(c)!==null&&daysFor(c)!<=-10).length, due:base.filter(c=>daysFor(c)!==null&&daysFor(c)!>=0&&daysFor(c)!<=7).length, overdue:base.filter(c=>daysFor(c)!==null&&daysFor(c)!<0&&daysFor(c)>-10).length, active:base.filter(c=>daysFor(c)===null||daysFor(c)!>7).length };
+    return { total:base.length, archived:base.filter(c=>{const days=daysFor(c);return days!==null&&days<=-10;}).length, due:base.filter(c=>{const days=daysFor(c);return days!==null&&days>=0&&days<=7;}).length, overdue:base.filter(c=>{const days=daysFor(c);return days!==null&&days<0&&days>-10;}).length, active:base.filter(c=>{const days=daysFor(c);return days===null||days>7;}).length };
   }, [clients, subscriptions, companyId]);
   const clientPercent = (n:number) => clientStatusCounts.total ? (n/clientStatusCounts.total*100).toFixed(1).replace(".",",")+"%" : "0,0%";
   const pagedClients = useMemo(() => {
