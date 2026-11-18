@@ -303,7 +303,7 @@ export default function Home() {
     base.setDate(base.getDate() + 30);
     const due = base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
     setBusy(true); setError("");
-    const { error: subscriptionError } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa"}).eq("id",sub.id);
+    const { error: subscriptionError } = await supabase.from("assinaturas").update({data_vencimento:due,status:"ativa",cobranca_status:"em_aberto",recebido_em:null}).eq("id",sub.id);
     if (subscriptionError) { setError(subscriptionError.message); setBusy(false); return; }
     if (client.arquivado_em) {
       const { error: clientError } = await supabase.from("clientes").update({arquivado_em:null,status:"ativo"}).eq("id",client.id);
@@ -315,6 +315,20 @@ export default function Home() {
     setNotice("Renovação concluída. O cliente voltou à lista normal e o próximo vencimento foi definido para 30 dias a partir de hoje.");
     await loadData(); setBusy(false);
   }
+  async function toggleSubscriptionReceipt(client: Client) {
+    const sub = subscriptions.filter(x => x.cliente_id === client.id).sort((a,b) => b.data_vencimento.localeCompare(a.data_vencimento))[0];
+    if (!sub) { setError("Este cliente ainda não possui uma assinatura."); return; }
+    const alreadyReceived = sub.cobranca_status === "recebido" && !!sub.recebido_em;
+    setBusy(true); setError(""); setNotice("");
+    const { error } = await supabase.from("assinaturas").update({
+      cobranca_status: alreadyReceived ? "em_aberto" : "recebido",
+      recebido_em: alreadyReceived ? null : today()
+    }).eq("id", sub.id);
+    if (error) setError("Não foi possível atualizar o recebimento: " + error.message);
+    else setNotice(alreadyReceived ? "Pagamento desmarcado. O valor saiu do total recebido." : "Pagamento confirmado e incluído no total recebido de hoje.");
+    await loadData(); setBusy(false);
+  }
+
   async function deleteClient(client: Client) {
     if (!confirm("Excluir este cliente e os registros vinculados a ele?")) return;
     const { error } = await supabase.from("clientes").delete().eq("id", client.id);
@@ -616,7 +630,7 @@ export default function Home() {
                       <td className="px-3 py-3 whitespace-nowrap font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
                       <td className="px-3 py-3 whitespace-nowrap">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
                       <td className="px-3 py-3 text-center align-middle"><span className={`inline-flex whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
-                      <td className="px-2 py-3 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="shrink-0 rounded-lg border border-sky-400/25 bg-sky-500/10 p-1.5 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="shrink-0 rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-1.5 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="shrink-0 rounded-lg border border-rose-400/25 bg-rose-500/10 p-1.5 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
+                      <td className="px-2 py-3 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="shrink-0 rounded-lg border border-sky-400/25 bg-sky-500/10 p-1.5 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title={subscriptions.filter(x=>x.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0]?.cobranca_status==="recebido" && !!subscriptions.filter(x=>x.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0]?.recebido_em ? "Desmarcar pagamento recebido" : "Marcar pagamento como recebido"} aria-label="Alternar pagamento recebido" onClick={()=>void toggleSubscriptionReceipt(c)} disabled={busy} className="shrink-0 rounded-lg border border-amber-400/25 bg-amber-500/10 p-1.5 text-amber-300 transition hover:border-amber-400/60 hover:bg-amber-500/20 disabled:opacity-40"><CheckCircle2 size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="shrink-0 rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-1.5 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="shrink-0 rounded-lg border border-rose-400/25 bg-rose-500/10 p-1.5 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
                     </tr>
                     {showClientForm && editingClient === c.id && <tr><td colSpan={9} className="p-4"><form onSubmit={addClient} className="w-full rounded-2xl border border-[#344b68] bg-[#0b192b] p-6 shadow-lg shadow-black/20">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
