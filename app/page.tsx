@@ -703,7 +703,7 @@ export default function Home() {
                   <tbody>
                     {periodPaymentsList.map(p=><tr key={`recebimento-${p.id}`} className="border-t border-white/10 hover:bg-white/[0.03]">
                       <td className="px-3 py-4 text-center align-middle"><span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">Recebimento</span></td>
-                      <td className="px-3 py-4 text-left align-middle">{p.descricao||"Recebimento"}</td><td className="px-3 py-4 text-left align-middle">{p.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-emerald-300">{money(p.valor)}</td>
+                      <td className="px-3 py-4 text-left align-middle"><div>{p.descricao||"Recebimento"}</div>{p.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {p.observacoes}</div>}</td><td className="px-3 py-4 text-left align-middle">{p.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-emerald-300">{money(p.valor)}</td>
                       <td className="px-3 py-4 text-center align-middle">{formatDate(p.data_vencimento)}</td><td className="px-3 py-4 text-center align-middle">{formatDate(p.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{p.forma_pagamento||"—"}</td>
                       <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${p.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{p.status==="pago"?"Recebido":"Pendente"}</span></td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5">
@@ -713,7 +713,7 @@ export default function Home() {
                     </tr>)}
                     {periodExpensesList.map(e=><tr key={`despesa-${e.id}`} className="border-t border-white/10 hover:bg-white/[0.03]">
                       <td className="px-3 py-4 text-center align-middle"><span className="rounded-full bg-rose-500/10 px-2 py-1 text-[11px] font-semibold text-rose-300">Despesa</span></td>
-                      <td className="px-3 py-4 text-left align-middle">{e.descricao}</td><td className="px-3 py-4 text-left align-middle">{e.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-rose-300">{money(e.valor)}</td>
+                      <td className="px-3 py-4 text-left align-middle"><div>{e.descricao}</div>{e.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {e.observacoes}</div>}</td><td className="px-3 py-4 text-left align-middle">{e.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-rose-300">{money(e.valor)}</td>
                       <td className="px-3 py-4 text-center align-middle">{formatDate(e.data_vencimento)}</td><td className="px-3 py-4 text-center align-middle">{formatDate(e.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{e.forma_pagamento||"—"}</td>
                       <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${e.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{e.status==="pago"?"Pago":"Pendente"}</span></td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5">
