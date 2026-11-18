@@ -329,7 +329,7 @@ export default function Home() {
     const rows = clients.filter((client) => {
       const sub = subscriptions.filter(x => x.cliente_id === client.id).sort((a,b) => b.data_vencimento.localeCompare(a.data_vencimento))[0];
       const days = sub ? Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null;
-      const status = client.arquivado_em ? "arquivado" : days === null ? "sem_assinatura" : days < 0 ? "vencido" : days <= 7 ? "proximo" : "ativo";
+      const status = days !== null && days <= -10 ? "arquivado" : days === null ? "sem_assinatura" : days < 0 ? "vencido" : days <= 7 ? "proximo" : "ativo";
       return client.empresa_id === companyId
         && (client.nome.toLowerCase().includes(q) || (client.mac ?? "").toLowerCase().includes(q))
         && (statusFilter === "todos" || status === statusFilter || (statusFilter === "ativo" && status === "sem_assinatura"))
@@ -350,7 +350,7 @@ export default function Home() {
   const clientStatusCounts = useMemo(() => {
     const base = clients.filter(c => c.empresa_id === companyId);
     const daysFor = (c: Client) => { const s = subscriptions.filter(x=>x.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0]; return s ? Math.ceil((new Date(s.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000) : null; };
-    return { total:base.length, archived:base.filter(c=>!!c.arquivado_em).length, due:base.filter(c=>!c.arquivado_em&&daysFor(c)!==null&&daysFor(c)!>=0&&daysFor(c)!<=7).length, overdue:base.filter(c=>!c.arquivado_em&&daysFor(c)!==null&&daysFor(c)!<0).length, active:base.filter(c=>!c.arquivado_em&&(daysFor(c)===null||daysFor(c)!>7)).length };
+    return { total:base.length, archived:base.filter(c=>daysFor(c)!==null&&daysFor(c)!<=-10).length, due:base.filter(c=>daysFor(c)!==null&&daysFor(c)!>=0&&daysFor(c)!<=7).length, overdue:base.filter(c=>daysFor(c)!==null&&daysFor(c)!<0&&daysFor(c)>-10).length, active:base.filter(c=>daysFor(c)===null||daysFor(c)!>7).length };
   }, [clients, subscriptions, companyId]);
   const clientPercent = (n:number) => clientStatusCounts.total ? (n/clientStatusCounts.total*100).toFixed(1).replace(".",",")+"%" : "0,0%";
   const pagedClients = useMemo(() => {
