@@ -552,10 +552,10 @@ export default function Home() {
                 onLostPointerCapture={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
               >
                 <table className="w-full min-w-[1200px] table-fixed text-center text-sm">
-                  <colgroup><col style={{width:"14%"}}/><col style={{width:"6%"}}/><col style={{width:"12%"}}/><col style={{width:"8%"}}/><col style={{width:"5%"}}/><col style={{width:"8%"}}/><col style={{width:"13%"}}/><col style={{width:"7%"}}/><col style={{width:"9%"}}/><col style={{width:"9%"}}/><col style={{width:"9%"}}/></colgroup>
+                  <colgroup><col style={{width:"12%"}}/><col style={{width:"9%"}}/><col style={{width:"16%"}}/><col style={{width:"7%"}}/><col style={{width:"5%"}}/><col style={{width:"7%"}}/><col style={{width:"11%"}}/><col style={{width:"7%"}}/><col style={{width:"9%"}}/><col style={{width:"8%"}}/><col style={{width:"9%"}}/></colgroup>
                   <thead className="bg-gradient-to-r from-[#7f1021] to-[#a51028] text-[13px] font-bold uppercase tracking-wide text-white">
                     <tr>
-                      <th className="px-3 py-3 text-left">Cliente</th><th className="px-2 py-3">Indicação</th><th className="px-2 py-3 text-left">Observação</th><th className="px-2 py-3">Plano</th><th className="px-2 py-3">Acesso</th><th className="px-2 py-3">Servidor</th><th className="px-2 py-3 text-left">Aplicativo</th><th className="px-2 py-3">Valor</th><th className="px-2 py-3">Vencimento</th><th className="px-2 py-3">Status</th><th className="px-2 py-3">Ações</th>
+                      <th className="px-3 py-3 text-left">Cliente</th><th className="px-3 py-3">Indicação</th><th className="px-4 py-3 text-left">Observação</th><th className="px-2 py-3">Plano</th><th className="px-2 py-3">Acesso</th><th className="px-2 py-3">Servidor</th><th className="px-2 py-3 text-left">Aplicativo</th><th className="px-2 py-3">Valor</th><th className="px-2 py-3">Vencimento</th><th className="px-2 py-3">Status</th><th className="px-2 py-3">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -586,8 +586,8 @@ export default function Home() {
             </form></td></tr>}
                     {pagedClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <><tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
                       <td className="px-3 py-3 text-left align-middle"><div className="whitespace-normal break-words font-semibold leading-6 text-white">{c.nome}</div></td>
-                      <td className="px-2 py-3 whitespace-nowrap text-center">{c.indicacao||"—"}</td>
-                      <td className="max-w-[220px] px-2 py-3 text-left text-xs leading-5 text-slate-300"><div className="whitespace-normal break-words">{c.observacoes||"—"}</div></td>
+                      <td className="px-3 py-3 whitespace-nowrap text-center">{c.indicacao||"—"}</td>
+                      <td className="max-w-[280px] px-4 py-3 text-left text-xs leading-5 text-slate-300"><div className="whitespace-normal break-words">{c.observacoes||"—"}</div></td>
                       
                       
                       <td className="px-3 py-3 whitespace-normal break-words">{sub?.nome_plano||"Sem plano"}</td>
