@@ -561,10 +561,10 @@ export default function Home() {
                 onLostPointerCapture={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
               >
                 <table className="w-full min-w-[1200px] table-fixed text-center text-sm">
-                  <colgroup><col style={{width:"10%"}}/><col style={{width:"9%"}}/><col style={{width:"14%"}}/><col style={{width:"7%"}}/><col style={{width:"5%"}}/><col style={{width:"7%"}}/><col style={{width:"10%"}}/><col style={{width:"7%"}}/><col style={{width:"8%"}}/><col style={{width:"13%"}}/><col style={{width:"10%"}}/></colgroup>
+                  <colgroup><col style={{width:"9%"}}/><col style={{width:"9%"}}/><col style={{width:"13%"}}/><col style={{width:"7%"}}/><col style={{width:"5%"}}/><col style={{width:"8%"}}/><col style={{width:"11%"}}/><col style={{width:"7%"}}/><col style={{width:"8%"}}/><col style={{width:"13%"}}/><col style={{width:"10%"}}/></colgroup>
                   <thead className="bg-gradient-to-r from-[#7f1021] to-[#a51028] text-[13px] font-bold uppercase tracking-wide text-white">
                     <tr>
-                      <th className="px-3 py-3 text-left">Cliente</th><th className="px-3 py-3">Indicação</th><th className="px-4 py-3 text-left">Observação</th><th className="px-2 py-3">Plano</th><th className="px-2 py-3">Acesso</th><th className="px-2 py-3">Servidor</th><th className="px-2 py-3 text-left">Aplicativo</th><th className="px-2 py-3">Valor</th><th className="px-2 py-3">Vencimento</th><th className="px-2 py-3">Status</th><th className="px-2 py-3">Ações</th>
+                      <th className="px-3 py-3 text-left">Cliente</th><th className="px-3 py-3">Indicação</th><th className="px-4 py-3 text-left">Observação</th><th className="px-2 py-3">Plano</th><th className="px-2 py-3">Acesso</th><th className="px-3 py-3">Servidor</th><th className="px-3 py-3 text-left">Aplicativo</th><th className="px-2 py-3">Valor</th><th className="px-2 py-3">Vencimento</th><th className="px-2 py-3">Status</th><th className="px-2 py-3">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
