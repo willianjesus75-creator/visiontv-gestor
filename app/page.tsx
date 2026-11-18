@@ -554,10 +554,10 @@ export default function Home() {
                 onPointerCancel={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
                 onLostPointerCapture={() => { clientTableDragRef.current = null; setIsDraggingClientTable(false); }}
               >
-                <table className="w-max min-w-full table-auto text-center text-sm">
+                <table className="w-full min-w-[1120px] table-fixed text-center text-sm">
                   <thead className="bg-gradient-to-r from-[#7f1021] to-[#a51028] text-[13px] font-bold uppercase tracking-wide text-white">
                     <tr>
-                      <th className="min-w-[160px] px-3 py-3 text-left">Cliente</th><th className="min-w-[105px] px-3 py-3">Plano</th><th className="min-w-[70px] px-3 py-3">Acesso</th><th className="min-w-[115px] px-3 py-3">Servidor</th><th className="min-w-[175px] px-3 py-3 text-left">Aplicativo</th><th className="min-w-[100px] px-3 py-3">Valor</th><th className="min-w-[110px] px-3 py-3">Vencimento</th><th className="min-w-[110px] px-3 py-3">Status</th><th className="min-w-[125px] px-3 py-3">Ações</th>
+                      <th className="w-[18%] px-3 py-3 text-left">Cliente</th><th className="w-[10%] px-3 py-3">Plano</th><th className="w-[7%] px-3 py-3">Acesso</th><th className="w-[12%] px-3 py-3">Servidor</th><th className="w-[18%] px-3 py-3 text-left">Aplicativo</th><th className="w-[9%] px-3 py-3">Valor</th><th className="w-[10%] px-3 py-3">Vencimento</th><th className="w-[8%] px-3 py-3">Status</th><th className="w-[8%] px-3 py-3">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -587,20 +587,20 @@ export default function Home() {
               <div className="mt-4 flex gap-2"><button disabled={busy} className="rounded-xl bg-[#ed1c35] px-4 py-2.5 text-sm font-semibold">{busy?"Salvando...":editingClient?"Salvar alterações":"Salvar cliente"}</button><button type="button" onClick={()=>setShowClientForm(false)} className="rounded-xl border border-line px-4 py-2.5 text-sm">Cancelar</button></div>
             </form></td></tr>}
                     {pagedClients.map(c=>{const sub=subscriptions.filter(s=>s.cliente_id===c.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];const days=sub?Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(today()+"T12:00:00").getTime())/86400000):null;const status=!sub?"Sem assinatura":days!<0?"Vencido":days===0?"Vence hoje":days!<=7?"Vencimento próximo":"Ativo";return <><tr key={c.id} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
-                      <td className="min-w-[150px] px-3 py-3 text-left align-middle"><div className="whitespace-normal break-words font-semibold leading-6 text-white">{c.nome}</div></td>
-                      <td className="min-w-[82px] px-3 py-3 whitespace-normal break-words font-medium text-slate-200">{c.indicacao||"—"}</td>
-                      <td className="min-w-[170px] max-w-[340px] px-3 py-3 whitespace-normal break-words text-sm font-normal leading-6 text-slate-200">{c.observacoes||"—"}</td>
-                      <td className="min-w-[105px] px-3 py-3 whitespace-normal break-words">{sub?.nome_plano||"Sem plano"}</td>
-                      <td className="min-w-[62px] px-3 py-3 whitespace-nowrap">{sub?sub.quantidade_telas:"—"}</td>
-                      <td className="min-w-[112px] px-3 py-3 whitespace-normal break-words">{c.servidor||"—"}</td>
-                      <td className="min-w-[162px] px-3 py-3 whitespace-normal break-words text-left text-sm leading-6">{c.aplicativo||"—"}</td>
+                      <td className="px-3 py-3 text-left align-middle"><div className="whitespace-normal break-words font-semibold leading-6 text-white">{c.nome}</div></td>
                       
-                      <td className="min-w-[82px] px-3 py-3 whitespace-nowrap font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
-                      <td className="min-w-[82px] px-3 py-3 whitespace-nowrap">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
-                      <td className="min-w-[105px] px-3 py-3 whitespace-nowrap"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
-                      <td className="min-w-[112px] px-3 py-3 whitespace-nowrap"><div className="flex items-center justify-center gap-2"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-2 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-2 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-2 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
+                      
+                      <td className="px-3 py-3 whitespace-normal break-words">{sub?.nome_plano||"Sem plano"}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">{sub?sub.quantidade_telas:"—"}</td>
+                      <td className="px-3 py-3 whitespace-normal break-words">{c.servidor||"—"}</td>
+                      <td className="px-3 py-3 whitespace-normal break-words text-left text-sm leading-6">{c.aplicativo||"—"}</td>
+                      
+                      <td className="px-3 py-3 whitespace-nowrap font-bold text-emerald-400">{sub?money(sub.valor):"—"}</td>
+                      <td className="px-3 py-3 whitespace-nowrap">{sub?new Date(sub.data_vencimento+"T12:00:00").toLocaleDateString("pt-BR"):"—"}</td>
+                      <td className="px-3 py-3 whitespace-nowrap"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${!sub?"bg-slate-800 text-slate-300":days!<0?"bg-rose-950 text-rose-300":days!<=7?"bg-amber-950 text-amber-300":"bg-emerald-950 text-emerald-300"}`}>{status}</span></td>
+                      <td className="px-3 py-3 whitespace-nowrap"><div className="flex items-center justify-center gap-2"><button title="Editar cliente" aria-label="Editar cliente" onClick={()=>editClient(c)} className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-2 text-sky-300 transition hover:border-sky-400/60 hover:bg-sky-500/20"><Pencil size={15}/></button><button title="Renovar cliente" aria-label="Renovar cliente" onClick={()=>void renewClient(c)} disabled={busy} className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 p-2 text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:opacity-40"><RefreshCw size={15}/></button><button title="Excluir cliente" aria-label="Excluir cliente" onClick={()=>void deleteClient(c)} className="rounded-lg border border-rose-400/25 bg-rose-500/10 p-2 text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/20"><Trash2 size={15}/></button></div></td>
                     </tr>
-                    {showClientForm && editingClient === c.id && <tr><td colSpan={11} className="p-4"><form onSubmit={addClient} className="w-full rounded-2xl border border-[#344b68] bg-[#0b192b] p-6 shadow-lg shadow-black/20">
+                    {showClientForm && editingClient === c.id && <tr><td colSpan={9} className="p-4"><form onSubmit={addClient} className="w-full rounded-2xl border border-[#344b68] bg-[#0b192b] p-6 shadow-lg shadow-black/20">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
                 <div className="lg:col-span-2">{field("Nome completo",<input required value={clientForm.nome} onChange={e=>setClientForm({...clientForm,nome:e.target.value})} placeholder="Nome completo do cliente" className={inputClass+" min-h-11"}/>)}</div>
                 {field("Plano",<input value={clientForm.plano} onChange={e=>setClientForm({...clientForm,plano:e.target.value})} placeholder="Ex.: Mensal" className={inputClass}/>)}
