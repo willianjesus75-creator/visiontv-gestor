@@ -218,7 +218,7 @@ export default function Home() {
     if (busy) return;
     const clientIdBeingEdited = editingClient;
     setBusy(true); setError(""); setNotice("");
-    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, servidor: clientForm.servidor || null, aplicativo: clientForm.aplicativo || null, valor_aplicativo: clientForm.valor_aplicativo ? Number(clientForm.valor_aplicativo) : null, chave: clientForm.chave || null, tv: clientForm.tv || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, app_vencimento2: clientForm.app_vencimento2 || null, status: clientForm.status };
+    const payload = { owner_id: user.id, empresa_id: companyId, nome: clientForm.nome.trim(), indicacao: clientForm.indicacao.trim() || null, mac: clientForm.mac || null, servidor: clientForm.servidor || null, aplicativo: clientForm.aplicativo || null, valor_aplicativo: clientForm.valor_aplicativo ? Number(clientForm.valor_aplicativo) : null, chave: clientForm.chave || null, tv: clientForm.tv || null, observacoes: clientForm.observacoes || null, app_vencimento: clientForm.app_vencimento || null, app_vencimento2: clientForm.app_vencimento2 || null, status: clientForm.status, ...(clientIdBeingEdited ? { arquivado_em: null } : {}) };
     const request = clientIdBeingEdited ? supabase.from("clientes").update(payload).eq("id", clientIdBeingEdited) : supabase.from("clientes").insert(payload);
     const { data, error } = await request.select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,observacoes,app_vencimento,app_vencimento2,status").single();
     if (error) setError(error.message);
