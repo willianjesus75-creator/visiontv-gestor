@@ -234,13 +234,6 @@ export default function Home() {
       if (clientForm.plano && clientForm.valor && clientForm.vencimento) {
         const currentSub = subscriptions.find(x => x.cliente_id === data.id);
         const isNewActivation = !currentSub;
-        const isRenewalOrPlanChange = !!currentSub && (
-          currentSub.data_vencimento !== clientForm.vencimento ||
-          currentSub.nome_plano !== clientForm.plano ||
-          Number(currentSub.valor) !== Number(clientForm.valor) ||
-          Number(currentSub.quantidade_telas) !== Number(clientForm.telas) ||
-          currentSub.periodicidade !== clientForm.periodicidade
-        );
         const subscriptionPayload = {
           owner_id: user.id, empresa_id: companyId, cliente_id: data.id,
           nome_plano: clientForm.plano, quantidade_telas: Number(clientForm.telas),
