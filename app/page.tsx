@@ -247,7 +247,7 @@ export default function Home() {
           valor: Number(clientForm.valor), periodicidade: clientForm.periodicidade,
           data_inicio: today(), data_vencimento: clientForm.vencimento,
           status: "ativa",
-          ...((isNewActivation || isRenewalOrPlanChange) ? { cobranca_status: "pago", recebido_em: today() } : {})
+          ...(isNewActivation ? { cobranca_status: "pago", recebido_em: today() } : {})
         };
         const { error: subError } = currentSub
           ? await supabase.from("assinaturas").update(subscriptionPayload).eq("id", currentSub.id)
@@ -404,11 +404,15 @@ export default function Home() {
   const clientPageCount = Math.max(1,Math.ceil(filteredClients.length/clientPageSize));
   const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
   const monthlyRegistered = clientSubscriptions.reduce((sum, sub) => sum + Number(sub.valor || 0) / (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1), 0);
-  // Assinaturas ativas e ainda dentro do prazo contam como recebidas.
-  // Assinaturas vencidas ou inativas permanecem no valor em aberto.
-  const isClientSubscriptionReceived = (sub: Subscription) => sub.status === "ativa" && sub.data_vencimento >= today();
-  const clientOpen = clientSubscriptions.filter(sub => !isClientSubscriptionReceived(sub)).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
-  const confirmedClientReceipts = clientSubscriptions.filter(sub => (String(sub.cobranca_status) === "recebido" || String(sub.cobranca_status) === "pago") && !!sub.recebido_em);
+  // Clientes com vencimento nos próximos 7 dias ficam em aberto.
+  // Ao renovar, a nova data de vencimento os devolve ao total recebido.
+  // Clientes já vencidos saem dos dois indicadores até uma nova renovação.
+  const todayForSummary = new Date(today() + "T12:00:00");
+  const daysUntilClientDue = (sub: Subscription) => Math.ceil((new Date(sub.data_vencimento + "T12:00:00").getTime() - todayForSummary.getTime()) / 86400000);
+  const isClientSubscriptionInOpenWindow = (sub: Subscription) => sub.status === "ativa" && daysUntilClientDue(sub) >= 0 && daysUntilClientDue(sub) <= 7;
+  const isClientSubscriptionInReceivedTotal = (sub: Subscription) => sub.status === "ativa" && daysUntilClientDue(sub) > 7 && (String(sub.cobranca_status) === "recebido" || String(sub.cobranca_status) === "pago") && !!sub.recebido_em;
+  const clientOpen = clientSubscriptions.filter(isClientSubscriptionInOpenWindow).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
+  const confirmedClientReceipts = clientSubscriptions.filter(isClientSubscriptionInReceivedTotal);
   const clientReceived = confirmedClientReceipts.filter(sub => {
     if (clientReceivedMode === "todos") return true;
     const [year, month] = (sub.recebido_em || "").slice(0,10).split("-");
