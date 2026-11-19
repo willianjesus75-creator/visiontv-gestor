@@ -395,14 +395,15 @@ export default function Home() {
     return rows.slice(start,start+clientPageSize);
   }, [filteredClients, subscriptions, clientPage, clientPageSize, clientSort]);
   const clientPageCount = Math.max(1,Math.ceil(filteredClients.length/clientPageSize));
-  const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId));
+  // Assinaturas de clientes arquivados não entram em nenhum indicador financeiro.
+  const clientSubscriptions = subscriptions.filter((sub) => clients.some((client) => client.id === sub.cliente_id && client.empresa_id === companyId && !client.arquivado_em));
   const monthlyRegistered = clientSubscriptions.reduce((sum, sub) => sum + Number(sub.valor || 0) / (sub.periodicidade === "trimestral" ? 3 : sub.periodicidade === "semestral" ? 6 : sub.periodicidade === "anual" ? 12 : 1), 0);
-  // Clientes com vencimento nos próximos 7 dias ficam em aberto.
-  // Ao renovar, a nova data de vencimento os devolve ao total recebido.
-  // Clientes já vencidos saem dos dois indicadores até uma nova renovação.
+  // Clientes que vencem nos próximos 7 dias ou já estão vencidos ficam em aberto.
+  // Ao arquivar o cliente, ele sai tanto do aberto quanto do total recebido.
+  // Ao renovar, a nova data de vencimento o devolve ao total recebido quando passar da janela de 7 dias.
   const todayForSummary = new Date(today() + "T12:00:00");
   const daysUntilClientDue = (sub: Subscription) => Math.ceil((new Date(sub.data_vencimento + "T12:00:00").getTime() - todayForSummary.getTime()) / 86400000);
-  const isClientSubscriptionInOpenWindow = (sub: Subscription) => sub.status === "ativa" && daysUntilClientDue(sub) >= 0 && daysUntilClientDue(sub) <= 7;
+  const isClientSubscriptionInOpenWindow = (sub: Subscription) => sub.status === "ativa" && daysUntilClientDue(sub) <= 7;
   const isClientSubscriptionInReceivedTotal = (sub: Subscription) => sub.status === "ativa" && daysUntilClientDue(sub) > 7 && (String(sub.cobranca_status) === "recebido" || String(sub.cobranca_status) === "pago") && !!sub.recebido_em;
   const clientOpen = clientSubscriptions.filter(isClientSubscriptionInOpenWindow).reduce((sum, sub) => sum + Number(sub.valor || 0), 0);
   const confirmedClientReceipts = clientSubscriptions.filter(isClientSubscriptionInReceivedTotal);
