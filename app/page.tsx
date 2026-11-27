@@ -499,13 +499,11 @@ export default function Home() {
   const dashboardPieActivePct = dashboardPieTotal ? dashboardActiveClientIds.size/dashboardPieTotal*100 : 0;
   const dashboardPieOverduePct = dashboardPieTotal ? dashboardOverdueClientIds.size/dashboardPieTotal*100 : 0;
   const dashboardPieNewPct = dashboardPieTotal ? dashboardPieNewClientIds.size/dashboardPieTotal*100 : 0;
-  const piePoint = (percent:number, radius=86) => {
-    const angle=(percent*3.6-90)*Math.PI/180;
-    return {x:215+radius*Math.cos(angle),y:135+radius*Math.sin(angle)};
-  };
-  const pieActivePoint=piePoint(dashboardPieActivePct/2);
-  const pieNewPoint=piePoint(dashboardPieActivePct+dashboardPieNewPct/2);
-  const pieOverduePoint=piePoint(dashboardPieActivePct+dashboardPieNewPct+dashboardPieOverduePct/2);
+  // Âncoras posicionadas conforme o modelo visual: verde à esquerda/abaixo,
+  // azul à direita/acima e vermelho no topo, sempre sobre o anel.
+  const pieActivePoint={x:137,y:163};
+  const pieNewPoint={x:292,y:105};
+  const pieOverduePoint={x:244,y:54};
   const dashboardChartMax=Math.max(1,...dashboardChartMonths.flatMap(m=>[m.received,m.open]));
   const dashboardChartPoints=(key:"received"|"open")=>dashboardChartMonths.map((m,i)=>({value:m[key],x:66+i*64.9,y:230-(m[key]/dashboardChartMax)*175})).map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
   const currentReceiptYear = new Date().getFullYear();
