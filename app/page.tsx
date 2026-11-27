@@ -43,6 +43,7 @@ export default function Home() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -147,24 +148,42 @@ export default function Home() {
 
   useEffect(() => { if (user) void loadData(); }, [user]);
 
-  async function loadData() {
+  async function loadData(): Promise<boolean> {
     setError("");
-    const [c, cl, p, e, s] = await Promise.all([
-      supabase.from("empresas").select("id,nome,tipo").order("nome"),
-      supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,valor_aplicativo,chave,tv,observacoes,app_vencimento,app_vencimento2,status,arquivado_em").order("nome"),
-      supabase.from("pagamentos").select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao,observacoes,created_at").order("created_at", { ascending: false }),
-      supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes,created_at").order("created_at", { ascending: false }),
-      supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status,cobranca_status,recebido_em").order("data_vencimento")
-    ]);
-    const firstError = c.error || cl.error || p.error || e.error || s.error;
-    if (firstError) setError("Não foi possível carregar todos os dados: " + firstError.message);
-    const cs = (c.data ?? []) as Company[];
-    setCompanies(cs);
-    setCompanyId((current) => current || cs[0]?.id || "");
-    setClients((cl.data ?? []) as Client[]);
-    setPayments((p.data ?? []) as Payment[]);
-    setExpenses((e.data ?? []) as Expense[]);
-    setSubscriptions((s.data ?? []) as Subscription[]);
+    setRefreshing(true);
+    try {
+      const [c, cl, p, e, s] = await Promise.all([
+        supabase.from("empresas").select("id,nome,tipo").order("nome"),
+        supabase.from("clientes").select("id,empresa_id,nome,indicacao,mac,servidor,aplicativo,valor_aplicativo,chave,tv,observacoes,app_vencimento,app_vencimento2,status,arquivado_em").order("nome"),
+        supabase.from("pagamentos").select("id,empresa_id,cliente_id,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,descricao,observacoes,created_at").order("created_at", { ascending: false }),
+        supabase.from("despesas").select("id,empresa_id,descricao,categoria,valor,data_vencimento,data_pagamento,forma_pagamento,status,observacoes,created_at").order("created_at", { ascending: false }),
+        supabase.from("assinaturas").select("id,cliente_id,nome_plano,quantidade_telas,valor,periodicidade,data_vencimento,status,cobranca_status,recebido_em").order("data_vencimento")
+      ]);
+      const firstError = c.error || cl.error || p.error || e.error || s.error;
+      if (firstError) {
+        setError("Não foi possível carregar todos os dados: " + firstError.message);
+        return false;
+      }
+      const cs = (c.data ?? []) as Company[];
+      setCompanies(cs);
+      setCompanyId((current) => current || cs[0]?.id || "");
+      setClients((cl.data ?? []) as Client[]);
+      setPayments((p.data ?? []) as Payment[]);
+      setExpenses((e.data ?? []) as Expense[]);
+      setSubscriptions((s.data ?? []) as Subscription[]);
+      return true;
+    } catch (err) {
+      setError("Falha ao atualizar os dados. Verifique sua conexão e tente novamente.");
+      return false;
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function refreshData() {
+    setRefreshSelected(true);
+    const success = await loadData();
+    if (success) setNotice("Dados atualizados com sucesso.");
   }
 
   async function signIn(event: React.FormEvent) {
@@ -482,7 +501,7 @@ export default function Home() {
       <aside className={`${menuOpen ? "flex" : "hidden"} fixed inset-y-0 left-0 z-30 h-dvh w-[min(82vw,16rem)] max-w-full flex-col overflow-y-auto overscroll-contain border-r border-[#35151a] bg-[#080808] p-4 sm:p-5 md:flex md:h-screen md:w-64 md:overflow-y-auto`}>
         <div className="mb-7 shrink-0 md:mb-10"><img src={VISIONTV_LOGO} alt="VisionTV" className="h-24 w-full object-contain sm:h-28 md:h-32" /><p className="-mt-4 text-center text-xs font-semibold uppercase tracking-widest"><span className="text-white">VisionTV</span>{" "}<span className="text-[#ed1c35]">GESTOR</span></p></div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Menu principal</p>
-        <nav className="shrink-0 space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setRefreshSelected(false);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}<button type="button" onClick={()=>{setRefreshSelected(true);void loadData();}} disabled={busy || loading} className={`mt-2 flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left text-sm font-semibold transition-colors disabled:opacity-50 ${refreshSelected ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><RefreshCw size={18} className={loading || busy ? "animate-spin" : ""}/>Atualizar dados</button></nav>
+        <nav className="shrink-0 space-y-2 text-sm">{nav.map(({id,label,icon:Icon})=><button key={id} onClick={()=>{setTab(id);setRefreshSelected(false);setMenuOpen(false);setSearch("");}} className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left transition-colors ${tab===id ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><Icon size={18}/>{label}</button>)}<button type="button" onClick={()=>void refreshData()} disabled={busy || loading || refreshing} aria-live="polite" className={`mt-2 flex w-full items-center gap-3 rounded-xl border-l-2 px-4 py-3 text-left text-sm font-semibold transition-colors disabled:opacity-70 ${refreshSelected ? "border-[#f10d24] bg-[#321014] text-white" : "border-transparent text-slate-400 hover:bg-[#171717] hover:text-white"}`}><RefreshCw size={18} className={refreshing ? "animate-spin text-rose-300" : ""}/>{refreshing ? "Atualizando..." : "Atualizar dados"}</button></nav>
         <div className="mt-auto flex shrink-0 flex-col gap-3 pt-8 md:pt-0"><div className="truncate text-xs text-slate-400">{user.email}</div><button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm text-slate-300 hover:bg-[#171717]"><LogOut size={16}/> Sair</button><div className="border-t border-line pt-3 text-xs text-muted">Acesso privado • VisionTV Gestor</div></div>
       </aside>
       <section className="min-w-0 flex-1 md:ml-64">
