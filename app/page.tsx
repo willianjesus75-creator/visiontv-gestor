@@ -470,11 +470,26 @@ export default function Home() {
   const dashboardChartMonths = Array.from({length:12},(_,i)=>{const month=String(i+1).padStart(2,"0");return {label:["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][i],received:clientSubscriptions.filter(sub=>isClientSubscriptionInReceivedTotal(sub)&&(sub.recebido_em||"").slice(0,7)===`${clientReceivedYear}-${month}`).reduce((sum,sub)=>sum+Number(sub.valor||0),0),open:clientSubscriptions.filter(sub=>isClientSubscriptionInOpenWindow(sub)&&sub.data_vencimento.slice(0,7)===`${clientReceivedYear}-${month}`).reduce((sum,sub)=>sum+Number(sub.valor||0),0)};});
   const dashboardClientMonths = Array.from({length:12},(_,i)=>{const month=String(i+1).padStart(2,"0");const newClients=clients.filter(c=>c.empresa_id===companyId&&!c.arquivado_em&&(c.created_at||"").slice(0,7)===`${clientReceivedYear}-${month}`).length;const overdueClients=new Set(subscriptions.filter(sub=>sub.data_vencimento<today()&&sub.data_vencimento.slice(0,7)===`${clientReceivedYear}-${month}`&&clients.some(c=>c.id===sub.cliente_id&&c.empresa_id===companyId&&!c.arquivado_em)).map(sub=>sub.cliente_id)).size;return {label:["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][i],newClients,overdueClients};});
   const dashboardClientChartMax=Math.max(1,...dashboardClientMonths.flatMap(m=>[m.newClients,m.overdueClients]));
-  const dashboardActiveClientIds = new Set(clientSubscriptions.filter(sub=>sub.status==="ativa"&&sub.data_vencimento>=today()).map(sub=>sub.cliente_id));
-  const dashboardOverdueClientIds = new Set(clientSubscriptions.filter(sub=>sub.status==="ativa"&&sub.data_vencimento<today()).map(sub=>sub.cliente_id));
-  const dashboardPieTotal = clients.filter(client=>client.empresa_id===companyId).length;
+  const dashboardPieReferenceDate = (() => {
+    const year = Number(clientReceivedYear);
+    const month = clientReceivedMode === "mensal" ? Number(clientReceivedMonth) : 12;
+    const end = new Date(year, month, 0);
+    const now = new Date();
+    if (end > now) return today();
+    return `${year}-${String(month).padStart(2,"0")}-${String(end.getDate()).padStart(2,"0")}`;
+  })();
+  const dashboardPieClients = clients.filter(client=>client.empresa_id===companyId&&(client.created_at||"").slice(0,10)<=dashboardPieReferenceDate);
+  const dashboardPieTotal = dashboardPieClients.length;
+  const dashboardPieClientStatus = dashboardPieClients.map(client=>{
+    const sub = subscriptions.filter(item=>item.cliente_id===client.id).sort((a,b)=>b.data_vencimento.localeCompare(a.data_vencimento))[0];
+    const days = sub ? Math.ceil((new Date(sub.data_vencimento+"T12:00:00").getTime()-new Date(dashboardPieReferenceDate+"T12:00:00").getTime())/86400000) : null;
+    return {client,days};
+  });
+  const dashboardActiveClientIds = new Set(dashboardPieClientStatus.filter(({client,days})=>!client.arquivado_em&&(days===null||days>7)).map(({client})=>client.id));
+  const dashboardOverdueClientIds = new Set(dashboardPieClientStatus.filter(({client,days})=>!client.arquivado_em&&days!==null&&days<0&&days>-10).map(({client})=>client.id));
   const dashboardPieCounted = dashboardActiveClientIds.size+dashboardOverdueClientIds.size;
   const dashboardPieActivePct = dashboardPieCounted ? dashboardActiveClientIds.size/dashboardPieCounted*100 : 0;
+  const dashboardPieOverduePct = dashboardPieCounted ? dashboardOverdueClientIds.size/dashboardPieCounted*100 : 0;
   const dashboardChartMax=Math.max(1,...dashboardChartMonths.flatMap(m=>[m.received,m.open]));
   const dashboardChartPoints=(key:"received"|"open")=>dashboardChartMonths.map((m,i)=>({value:m[key],x:66+i*64.9,y:230-(m[key]/dashboardChartMax)*175})).map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
   const currentReceiptYear = new Date().getFullYear();
@@ -604,12 +619,12 @@ export default function Home() {
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-bold text-white">Total recebido x Valor em aberto</h3><p className="text-xs text-slate-400">Resumo financeiro dos clientes por mês</p></div><div className="flex flex-wrap gap-3 text-xs"><span className="flex items-center gap-1.5 text-slate-300"><i className="h-2 w-2 rounded-full bg-emerald-400"/>Total recebido</span><span className="flex items-center gap-1.5 text-slate-300"><i className="h-2 w-2 rounded-full bg-yellow-400"/>Resumo dos clientes — valor em aberto</span></div></div>
                 <div className="overflow-hidden"><svg viewBox="0 0 820 300" role="img" aria-label={`Gráfico mensal de total recebido e valor em aberto em ${clientReceivedYear}`} className="h-auto w-full">{[55,105,155,205].map((y,i)=><g key={y}><line x1="66" x2="780" y1={y} y2={y} stroke="#64748b" strokeOpacity=".28" strokeDasharray="4 6"/><text x="56" y={y+4} fill="#94a3b8" fontSize="11" textAnchor="end">{money(dashboardChartMax*(1-i/4))}</text></g>)}<line x1="66" x2="780" y1="230" y2="230" stroke="#64748b" strokeOpacity=".55"/>{dashboardChartMonths.map((m,i)=>{const x=76+i*59.5;const rh=(m.received/dashboardChartMax)*175;const sh=(m.open/dashboardChartMax)*175;return <g key={m.label}><rect x={x} y={230-rh} width="17" height={rh} rx="4" fill="#34d399"><title>{`${m.label}: total recebido ${money(m.received)}`}</title></rect><rect x={x+20} y={230-sh} width="17" height={sh} rx="4" fill="#facc15"><title>{`${m.label}: valor em aberto ${money(m.open)}`}</title></rect><text x={x+18} y="254" fill="#cbd5e1" fontSize="12" textAnchor="middle">{m.label}</text></g>})}</svg><div className="mt-2 flex justify-between gap-3 text-xs text-slate-400"><span>Valores das assinaturas em {clientReceivedYear}</span><span>Em aberto: vencimento hoje ou nos próximos 7 dias</span></div></div>
                 <div className="my-5 border-t border-white/10"/>
-                <div className="mb-4"><h3 className="font-bold text-white">Resumo dos clientes</h3><p className="text-xs text-slate-400">Clientes ativos e vencidos — arquivados não entram na distribuição</p></div>
+                <div className="mb-4"><h3 className="font-bold text-white">Resumo dos clientes</h3><p className="text-xs text-slate-400">Distribuição no período selecionado — arquivados não entram nas fatias</p></div>
                 <div className="flex flex-col items-center justify-center gap-6 lg:flex-row lg:justify-around">
                   <div className="relative h-48 w-48 shrink-0 rounded-full" style={{background:`conic-gradient(#34d399 0 ${dashboardPieActivePct}%, #fb7185 ${dashboardPieActivePct}% 100%)`}}><div className="absolute inset-8 grid place-items-center rounded-full bg-[#101a29]"><div className="text-center"><p className="text-xs text-slate-400">Total cadastrado</p><p className="text-3xl font-extrabold text-white">{dashboardPieTotal}</p></div></div></div>
                   <div className="grid w-full max-w-sm gap-3">
-                    <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3"><span className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><i className="h-3 w-3 rounded-full bg-emerald-400"/>Clientes ativos</span><strong className="text-xl text-white">{dashboardActiveClientIds.size}</strong></div>
-                    <div className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 p-3"><span className="flex items-center gap-2 text-sm font-semibold text-rose-200"><i className="h-3 w-3 rounded-full bg-rose-400"/>Clientes vencidos</span><strong className="text-xl text-white">{dashboardOverdueClientIds.size}</strong></div>
+                    <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3"><span className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><i className="h-3 w-3 rounded-full bg-emerald-400"/>Clientes ativos</span><strong className="text-xl text-white">{dashboardActiveClientIds.size}<span className="ml-2 text-xs text-emerald-200/80">{dashboardPieActivePct.toFixed(1).replace(".",",")}%</span></strong></div>
+                    <div className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 p-3"><span className="flex items-center gap-2 text-sm font-semibold text-rose-200"><i className="h-3 w-3 rounded-full bg-rose-400"/>Clientes vencidos</span><strong className="text-xl text-white">{dashboardOverdueClientIds.size}<span className="ml-2 text-xs text-rose-200/80">{dashboardPieOverduePct.toFixed(1).replace(".",",")}%</span></strong></div>
                   </div>
                 </div>
               </article>
