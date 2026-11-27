@@ -60,6 +60,7 @@ export default function Home() {
   const [clientReceivedMonth, setClientReceivedMonth] = useState(String(new Date().getMonth()+1).padStart(2,"0"));
   const [clientReceivedYear, setClientReceivedYear] = useState(String(new Date().getFullYear()));
   const [overviewPeriodManual, setOverviewPeriodManual] = useState(false);
+  const observedOverviewPeriodRef = useRef(`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`);
   const [search, setSearch] = useState("");
   const clientTableScrollRef = useRef<HTMLDivElement>(null);
   const clientTableDragRef = useRef<{ pointerId: number; startX: number; scrollLeft: number; moved: boolean } | null>(null);
@@ -124,7 +125,14 @@ export default function Home() {
   useEffect(() => {
     const syncAutomaticPeriods = () => {
       const now = new Date();
-      if (!overviewPeriodManual) {
+      const currentOverviewPeriod = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+      const overviewMonthChanged = observedOverviewPeriodRef.current !== currentOverviewPeriod;
+      if (overviewMonthChanged) {
+        observedOverviewPeriodRef.current = currentOverviewPeriod;
+        setOverviewPeriodManual(false);
+        setClientReceivedMonth(String(now.getMonth()+1).padStart(2,"0"));
+        setClientReceivedYear(String(now.getFullYear()));
+      } else if (!overviewPeriodManual) {
         setClientReceivedMonth(String(now.getMonth()+1).padStart(2,"0"));
         setClientReceivedYear(String(now.getFullYear()));
       }
@@ -618,7 +626,7 @@ export default function Home() {
                     <div className="p-2"><button type="button" disabled={!companyId || busy} onClick={deleteCompany} className="flex w-full items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/[.07] px-2.5 py-2.5 text-left text-sm font-bold text-rose-400 transition hover:border-rose-500/50 hover:bg-rose-500/15 disabled:opacity-40"><span className="grid size-9 place-items-center rounded-lg bg-rose-500/15"><Trash2 size={18}/></span><span className="flex-1">Excluir empresa</span><span>›</span></button></div>
                   </div>}
                 </div>
-                {tab==="inicio" && <div className="flex max-w-full flex-wrap items-center justify-end gap-2 rounded-xl border border-[#26364d] bg-[#0d1727] p-1.5"><div className="grid grid-cols-3 gap-1 rounded-lg bg-black/30 p-1"><button type="button" onClick={()=>setClientReceivedMode("mensal")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="mensal"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Mensal</button><button type="button" onClick={()=>setClientReceivedMode("anual")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="anual"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Anual</button><button type="button" onClick={()=>setClientReceivedMode("todos")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="todos"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Todos</button></div>{clientReceivedMode!=="todos"&&<div className="flex gap-2">{clientReceivedMode==="mensal"&&<select aria-label="Mês do recebimento" value={clientReceivedMonth} onChange={e=>{setOverviewPeriodManual(true);setClientReceivedMonth(e.target.value)}} className="max-w-36 rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m,i)=><option key={i} value={String(i+1).padStart(2,"0")}>{m}</option>)}</select>}<select aria-label="Ano do recebimento" value={clientReceivedYear} onChange={e=>{setOverviewPeriodManual(true);setClientReceivedYear(e.target.value)}} className="rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{clientReceiptYears.map(y=><option key={y} value={y}>{y}</option>)}</select><button type="button" onClick={()=>{const now=new Date();setOverviewPeriodManual(false);setClientReceivedMonth(String(now.getMonth()+1).padStart(2,"0"));setClientReceivedYear(String(now.getFullYear()));}} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20">Automático</button></div>}</div>}
+                {tab==="inicio" && <div className="flex max-w-full flex-wrap items-center justify-end gap-2 rounded-xl border border-[#26364d] bg-[#0d1727] p-1.5"><div className="grid grid-cols-3 gap-1 rounded-lg bg-black/30 p-1"><button type="button" onClick={()=>setClientReceivedMode("mensal")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="mensal"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Mensal</button><button type="button" onClick={()=>setClientReceivedMode("anual")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="anual"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Anual</button><button type="button" onClick={()=>setClientReceivedMode("todos")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="todos"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Todos</button></div>{clientReceivedMode!=="todos"&&<div className="flex gap-2">{clientReceivedMode==="mensal"&&<select aria-label="Mês do recebimento" value={clientReceivedMonth} onChange={e=>{setOverviewPeriodManual(true);setClientReceivedMonth(e.target.value)}} className="max-w-36 rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m,i)=><option key={i} value={String(i+1).padStart(2,"0")}>{m}</option>)}</select>}<select aria-label="Ano do recebimento" value={clientReceivedYear} onChange={e=>{setOverviewPeriodManual(true);setClientReceivedYear(e.target.value)}} className="rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{clientReceiptYears.map(y=><option key={y} value={y}>{y}</option>)}</select></div>}</div>}
               </div>
             </div>
           </div>
