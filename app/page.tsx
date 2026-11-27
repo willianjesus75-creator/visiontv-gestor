@@ -276,6 +276,32 @@ export default function Home() {
     setBusy(false);
   }
 
+  async function confirmFinanceStatus(kind: "recebimento" | "despesa", id: string) {
+    const isPayment = kind === "recebimento";
+    const label = isPayment ? "recebimento" : "pagamento";
+    if (!window.confirm(`Confirma que este ${label} foi realizado?`)) return;
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    const table = isPayment ? "pagamentos" : "despesas";
+    const { data, error } = await supabase.from(table)
+      .update({ status: "pago", data_pagamento: today() })
+      .eq("id", id)
+      .eq("status", "pendente")
+      .select("id,status,data_pagamento")
+      .single();
+    if (error) {
+      setError(`Não foi possível confirmar o ${label}: ` + error.message);
+    } else if (isPayment) {
+      setPayments(old => old.map(item => item.id === id ? { ...item, status: "pago", data_pagamento: data.data_pagamento } : item));
+      setNotice("Recebimento confirmado e atualizado no financeiro.");
+    } else {
+      setExpenses(old => old.map(item => item.id === id ? { ...item, status: "pago", data_pagamento: data.data_pagamento } : item));
+      setNotice("Despesa marcada como paga e atualizada no financeiro.");
+    }
+    setBusy(false);
+    if (!error) await loadData();
+  }
+
   async function addPayment(event: React.FormEvent) {
     event.preventDefault();
     if (!user || !companyId) { setError("Cadastre ou selecione uma empresa primeiro."); return; }
@@ -735,14 +761,14 @@ export default function Home() {
                       <td className="px-3 py-4 text-left align-middle"><div>{entry.descricao||"Recebimento"}</div>{entry.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {entry.observacoes}</div>}</td>
                       <td className="px-3 py-4 text-left align-middle">{entry.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-emerald-300">{money(entry.valor)}</td>
                       <td className="px-3 py-4 text-center align-middle">{entry.data_vencimento ? formatDate(entry.data_vencimento) : ""}</td><td className="px-3 py-4 text-center align-middle">{formatDate(entry.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{entry.forma_pagamento||"—"}</td>
-                      <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${entry.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{entry.status==="pago"?"Recebido":"Pendente"}</span></td>
+                      <td className="px-3 py-4 text-center align-middle">{entry.status==="pago"?<span className="inline-flex rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">Recebido</span>:<button type="button" disabled={busy} onClick={()=>void confirmFinanceStatus("recebimento",entry.id)} title="Clique para confirmar o recebimento" className="inline-flex cursor-pointer rounded-full border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 transition hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300 disabled:cursor-wait disabled:opacity-50">A receber</button>}</td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5"><button title="Editar" onClick={()=>{setEditingPayment(entry.id);setPaymentForm({descricao:entry.descricao||"",categoria:entry.categoria||"",valor:String(entry.valor),data_vencimento:entry.data_vencimento||"",data_pagamento:entry.data_pagamento||today(),forma_pagamento:entry.forma_pagamento||"pix",status:entry.status,observacoes:entry.observacoes||""});setShowPaymentForm(true);setShowExpenseForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button><button title="Excluir" onClick={()=>void deleteFinance("pagamentos",entry.id)} className="rounded-md border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"><Trash2 size={14}/></button></div></td>
                     </tr> : <tr key={`despesa-${entry.id}`} className="border-t border-white/[0.07] align-top text-sm transition-colors hover:bg-[#203a59]/35">
                       <td className="px-3 py-4 text-center align-middle"><span className="rounded-full bg-rose-500/10 px-2 py-1 text-[11px] font-semibold text-rose-300">Despesa</span></td>
                       <td className="px-3 py-4 text-left align-middle"><div>{entry.descricao}</div>{entry.observacoes?.trim()&&<div className="mt-1 max-w-[320px] whitespace-normal text-xs font-normal text-slate-400">Obs.: {entry.observacoes}</div>}</td>
                       <td className="px-3 py-4 text-left align-middle">{entry.categoria||"—"}</td><td className="px-3 py-4 text-center align-middle font-bold text-rose-300">{money(entry.valor)}</td>
                       <td className="px-3 py-4 text-center align-middle">{entry.data_vencimento ? formatDate(entry.data_vencimento) : ""}</td><td className="px-3 py-4 text-center align-middle">{formatDate(entry.data_pagamento)}</td><td className="px-3 py-4 text-center align-middle">{entry.forma_pagamento||"—"}</td>
-                      <td className="px-3 py-4 text-center align-middle"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${entry.status==="pago"?"bg-emerald-500/10 text-emerald-300":"bg-amber-500/10 text-amber-300"}`}>{entry.status==="pago"?"Pago":"Pendente"}</span></td>
+                      <td className="px-3 py-4 text-center align-middle">{entry.status==="pago"?<span className="inline-flex rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">Pago</span>:<button type="button" disabled={busy} onClick={()=>void confirmFinanceStatus("despesa",entry.id)} title="Clique para confirmar o pagamento" className="inline-flex cursor-pointer rounded-full border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 transition hover:border-rose-400 hover:bg-rose-500/15 hover:text-rose-300 disabled:cursor-wait disabled:opacity-50">A pagar</button>}</td>
                       <td className="px-3 py-4 text-center align-middle"><div className="flex justify-center gap-1.5"><button title="Editar" onClick={()=>{setEditingExpense(entry.id);setExpenseForm({descricao:entry.descricao,categoria:entry.categoria||"",valor:String(entry.valor),data_vencimento:entry.data_vencimento||"",data_pagamento:entry.data_pagamento||"",forma_pagamento:entry.forma_pagamento||"pix",status:entry.status,observacoes:entry.observacoes||""});setShowExpenseForm(true);setShowPaymentForm(false);}} className="rounded-md border border-sky-500/30 p-1.5 text-sky-300 hover:bg-sky-500/10"><Pencil size={14}/></button><button title="Excluir" onClick={()=>void deleteFinance("despesas",entry.id)} className="rounded-md border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"><Trash2 size={14}/></button></div></td>
                     </tr>)}
                     {!financeEntries.length&&<tr><td colSpan={9} className="p-8 text-center text-slate-400">Nenhuma movimentação encontrada neste filtro.</td></tr>}
