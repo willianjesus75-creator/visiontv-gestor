@@ -59,6 +59,7 @@ export default function Home() {
   const [clientReceivedMode, setClientReceivedMode] = useState<"mensal" | "anual" | "todos">("mensal");
   const [clientReceivedMonth, setClientReceivedMonth] = useState(String(new Date().getMonth()+1).padStart(2,"0"));
   const [clientReceivedYear, setClientReceivedYear] = useState(String(new Date().getFullYear()));
+  const [overviewPeriodManual, setOverviewPeriodManual] = useState(false);
   const [search, setSearch] = useState("");
   const clientTableScrollRef = useRef<HTMLDivElement>(null);
   const clientTableDragRef = useRef<{ pointerId: number; startX: number; scrollLeft: number; moved: boolean } | null>(null);
@@ -112,23 +113,32 @@ export default function Home() {
   const [periodMonth, setPeriodMonth] = useState(() => new Date().getMonth() + 1);
   const [periodYear, setPeriodYear] = useState(() => new Date().getFullYear());
   const [periodManual, setPeriodManual] = useState(false);
-  const currentMonthStart = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
-  const currentMonthEnd = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10); };
+  const localDateString = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const currentMonthStart = () => { const d = new Date(); return localDateString(new Date(d.getFullYear(), d.getMonth(), 1)); };
+  const currentMonthEnd = () => { const d = new Date(); return localDateString(new Date(d.getFullYear(), d.getMonth() + 1, 0)); };
   const [dateFrom, setDateFrom] = useState(currentMonthStart);
   const [dateTo, setDateTo] = useState(currentMonthEnd);
   const [appliedDateFrom, setAppliedDateFrom] = useState(currentMonthStart);
   const [appliedDateTo, setAppliedDateTo] = useState(currentMonthEnd);
 
   useEffect(() => {
-    const syncCurrentPeriod = () => {
-      if (periodManual) return;
+    const syncAutomaticPeriods = () => {
       const now = new Date();
-      setPeriodMonth(now.getMonth() + 1);
-      setPeriodYear(now.getFullYear());
+      if (!overviewPeriodManual) {
+        setClientReceivedMonth(String(now.getMonth()+1).padStart(2,"0"));
+        setClientReceivedYear(String(now.getFullYear()));
+      }
+      if (!periodManual) {
+        const from = localDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+        const to = localDateString(new Date(now.getFullYear(), now.getMonth()+1, 0));
+        setDateFrom(from); setDateTo(to);
+        setAppliedDateFrom(from); setAppliedDateTo(to);
+      }
     };
-    const timer = window.setInterval(syncCurrentPeriod, 60_000);
+    syncAutomaticPeriods();
+    const timer = window.setInterval(syncAutomaticPeriods, 60_000);
     return () => window.clearInterval(timer);
-  }, [periodManual]);
+  }, [overviewPeriodManual, periodManual]);
 
   useEffect(() => {
     let alive = true;
@@ -536,7 +546,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">{tab==="financeiro" ? <div className="flex items-center gap-4 py-1"><span className="h-14 w-1.5 rounded-full bg-[#ed1c35]"/><div><h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">Lançamentos Financeiros</h2><p className="mt-1 text-sm text-slate-300 sm:text-base">Entradas e saídas da sua empresa</p></div></div> : <><h2 className="text-2xl font-bold">{tab==="inicio"?"Visão geral":"Gestão de clientes"}</h2><p className="mt-1 text-sm text-muted">Dados sincronizados com sua conta na nuvem.</p></>}</div>
             <div className="ml-auto flex flex-col items-end gap-2">
-              {tab==="financeiro" && <div className="order-2 flex flex-wrap items-end justify-end gap-2 rounded-2xl border border-[#38577e] bg-[#101c2e] p-3 shadow-inner shadow-black/20"><label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data inicial<input aria-label="Data inicial do financeiro" type="date" value={dateFrom} max={dateTo || undefined} onChange={e=>setDateFrom(e.target.value)} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-2 text-xs font-semibold text-white outline-none focus:border-rose-500"/></label><label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data final<input aria-label="Data final do financeiro" type="date" value={dateTo} min={dateFrom || undefined} onChange={e=>setDateTo(e.target.value)} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-2 text-xs font-semibold text-white outline-none focus:border-rose-500"/></label><button type="button" onClick={()=>{if(dateFrom && dateTo && dateFrom<=dateTo){setAppliedDateFrom(dateFrom);setAppliedDateTo(dateTo);}}} className="h-9 rounded-lg bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-4 text-xs font-bold text-white shadow-lg shadow-rose-950/30 hover:brightness-110">Filtrar</button><button type="button" onClick={()=>{const from=currentMonthStart(),to=currentMonthEnd();setDateFrom(from);setDateTo(to);setAppliedDateFrom(from);setAppliedDateTo(to);}} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-3 text-xs font-bold text-slate-200 hover:bg-[#203a59]">Este mês</button></div>}
+              {tab==="financeiro" && <div className="order-2 flex flex-wrap items-end justify-end gap-2 rounded-2xl border border-[#38577e] bg-[#101c2e] p-3 shadow-inner shadow-black/20"><label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data inicial<input aria-label="Data inicial do financeiro" type="date" value={dateFrom} max={dateTo || undefined} onChange={e=>{setPeriodManual(true);setDateFrom(e.target.value)}} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-2 text-xs font-semibold text-white outline-none focus:border-rose-500"/></label><label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data final<input aria-label="Data final do financeiro" type="date" value={dateTo} min={dateFrom || undefined} onChange={e=>{setPeriodManual(true);setDateTo(e.target.value)}} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-2 text-xs font-semibold text-white outline-none focus:border-rose-500"/></label><button type="button" onClick={()=>{if(dateFrom && dateTo && dateFrom<=dateTo){setPeriodManual(true);setAppliedDateFrom(dateFrom);setAppliedDateTo(dateTo);}}} className="h-9 rounded-lg bg-gradient-to-r from-[#ed1c35] to-[#c9152b] px-4 text-xs font-bold text-white shadow-lg shadow-rose-950/30 hover:brightness-110">Filtrar</button><button type="button" onClick={()=>{const from=currentMonthStart(),to=currentMonthEnd();setPeriodManual(false);setDateFrom(from);setDateTo(to);setAppliedDateFrom(from);setAppliedDateTo(to);}} className="h-9 rounded-lg border border-[#405675] bg-[#172943] px-3 text-xs font-bold text-slate-200 hover:bg-[#203a59]">Este mês</button></div>}
               <div className="order-1 flex flex-col items-end gap-2">
                 <div className="relative">
                   <button type="button" onClick={()=>setShowCompanyMenu(v=>!v)} className="group inline-flex min-h-12 max-w-[min(22rem,80vw)] items-center gap-3 rounded-2xl border border-rose-500/70 bg-gradient-to-r from-[#ed1c35] via-[#c8142c] to-[#8f0b1b] px-4 py-2.5 text-left text-sm font-bold text-white shadow-lg shadow-rose-950/40 transition hover:-translate-y-0.5 hover:brightness-110">
@@ -565,7 +575,7 @@ export default function Home() {
                     <div className="p-2"><button type="button" disabled={!companyId || busy} onClick={deleteCompany} className="flex w-full items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/[.07] px-2.5 py-2.5 text-left text-sm font-bold text-rose-400 transition hover:border-rose-500/50 hover:bg-rose-500/15 disabled:opacity-40"><span className="grid size-9 place-items-center rounded-lg bg-rose-500/15"><Trash2 size={18}/></span><span className="flex-1">Excluir empresa</span><span>›</span></button></div>
                   </div>}
                 </div>
-                {tab==="inicio" && <div className="flex max-w-full flex-wrap items-center justify-end gap-2 rounded-xl border border-[#26364d] bg-[#0d1727] p-1.5"><div className="grid grid-cols-3 gap-1 rounded-lg bg-black/30 p-1"><button type="button" onClick={()=>setClientReceivedMode("mensal")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="mensal"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Mensal</button><button type="button" onClick={()=>setClientReceivedMode("anual")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="anual"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Anual</button><button type="button" onClick={()=>setClientReceivedMode("todos")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="todos"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Todos</button></div>{clientReceivedMode!=="todos"&&<div className="flex gap-2">{clientReceivedMode==="mensal"&&<select aria-label="Mês do recebimento" value={clientReceivedMonth} onChange={e=>setClientReceivedMonth(e.target.value)} className="max-w-36 rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m,i)=><option key={i} value={String(i+1).padStart(2,"0")}>{m}</option>)}</select>}<select aria-label="Ano do recebimento" value={clientReceivedYear} onChange={e=>setClientReceivedYear(e.target.value)} className="rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{clientReceiptYears.map(y=><option key={y} value={y}>{y}</option>)}</select></div>}</div>}
+                {tab==="inicio" && <div className="flex max-w-full flex-wrap items-center justify-end gap-2 rounded-xl border border-[#26364d] bg-[#0d1727] p-1.5"><div className="grid grid-cols-3 gap-1 rounded-lg bg-black/30 p-1"><button type="button" onClick={()=>setClientReceivedMode("mensal")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="mensal"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Mensal</button><button type="button" onClick={()=>setClientReceivedMode("anual")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="anual"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Anual</button><button type="button" onClick={()=>setClientReceivedMode("todos")} className={`rounded-md px-3 py-2 text-xs font-semibold ${clientReceivedMode==="todos"?"bg-[#ed1c35] text-white":"text-slate-300"}`}>Todos</button></div>{clientReceivedMode!=="todos"&&<div className="flex gap-2">{clientReceivedMode==="mensal"&&<select aria-label="Mês do recebimento" value={clientReceivedMonth} onChange={e=>{setOverviewPeriodManual(true);setClientReceivedMonth(e.target.value)}} className="max-w-36 rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m,i)=><option key={i} value={String(i+1).padStart(2,"0")}>{m}</option>)}</select>}<select aria-label="Ano do recebimento" value={clientReceivedYear} onChange={e=>{setOverviewPeriodManual(true);setClientReceivedYear(e.target.value)}} className="rounded-lg border border-white/10 bg-[#101c2e] px-3 py-2 text-xs text-slate-200">{clientReceiptYears.map(y=><option key={y} value={y}>{y}</option>)}</select><button type="button" onClick={()=>{const now=new Date();setOverviewPeriodManual(false);setClientReceivedMonth(String(now.getMonth()+1).padStart(2,"0"));setClientReceivedYear(String(now.getFullYear()));}} className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20">Automático</button></div>}</div>}
               </div>
             </div>
           </div>
